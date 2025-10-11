@@ -83,7 +83,6 @@ fun ContentScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(contentGradient())
     ) {
         Column(
             modifier = Modifier
@@ -91,7 +90,7 @@ fun ContentScreen(
                 .navigationBarsPadding()
                 .imePadding()
         ) {
-            // Pills
+            // Pills (TOP, fixed)
             PillRow(
                 isConnected = isConnected,
                 hasFilament = (status?.hasFilament == true) && isConnected,
@@ -99,18 +98,18 @@ fun ContentScreen(
                 tempIconTint = tempIconColor,
             )
 
-            // Spool + Hintergrund-Glow
+            // Spool (MIDDLE, flexible – fills available space)
             Box(
                 modifier = Modifier
+                    .weight(1f)
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
-                    .padding(top = 8.dp)
-                    .aspectRatio(1f),
+                    .padding(top = 8.dp),
                 contentAlignment = Alignment.Center
             ) {
                 SpoolWithGradient()
 
-                // Rotations-Physik wie iOS: läuft beschleunigt, bremst ab bei Pause/Stop
+                // Rotations-Physik
                 val targetRpm = when (deviceState) {
                     DeviceState.RUNNING -> 60f
                     DeviceState.UPDATING -> 20f
@@ -120,59 +119,53 @@ fun ContentScreen(
                 TimelapseDisc(rotation = rotation)
             }
 
-            // Status + Progress
+            // Status & Controls (BOTTOM, fixed)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 16.dp)
             ) {
-                val progressValue = if (deviceState == DeviceState.IDLE) 0f else progress.coerceIn(0f, 100f)
-                StatusProgress(
-                    fraction = progressValue / 100f,
-                    bar = barColor,
-                    track = barBgColor
-                )
-                Spacer(Modifier.height(10.dp))
-                // Optional: Restzeit
-                AnimatedContent(
-                    targetState = deviceState to remaining,
-                    transitionSpec = { fadeIn(tween(180)) with fadeOut(tween(180)) }
-                ) { (state, rem) ->
-                    val text = when (state) {
-                        DeviceState.IDLE      -> "Bereit"
-                        DeviceState.RUNNING   -> "Läuft • Rest: ${formatSeconds(rem)}"
-                        DeviceState.PAUSED    -> "Pausiert"
-                        DeviceState.AUTO_STOP -> "Auto-Stopp"
-                        DeviceState.UPDATING  -> "Wird aktualisiert…"
-                        DeviceState.DONE      -> "Fertig"
-                        DeviceState.ERROR     -> "Fehler"
-                    }
-                    Text(
-                        text = text,
-                        style = MaterialTheme.typography.bodyMedium.copy(color = Color.Gray)
+                Column(Modifier.padding(horizontal = 16.dp)) {
+                    val progressValue = if (deviceState == DeviceState.IDLE) 0f else progress.coerceIn(0f, 100f)
+                    StatusProgress(
+                        fraction = progressValue / 100f,
+                        bar = barColor,
+                        track = barBgColor
                     )
+                    Spacer(Modifier.height(10.dp))
+                    AnimatedContent(
+                        targetState = deviceState to remaining,
+                        transitionSpec = { fadeIn(tween(180)) with fadeOut(tween(180)) }
+                    ) { (state, rem) ->
+                        val text = when (state) {
+                            DeviceState.IDLE      -> "Bereit"
+                            DeviceState.RUNNING   -> "Läuft • Rest: ${formatSeconds(rem)}"
+                            DeviceState.PAUSED    -> "Pausiert"
+                            DeviceState.AUTO_STOP -> "Auto-Stopp"
+                            DeviceState.UPDATING  -> "Wird aktualisiert…"
+                            DeviceState.DONE      -> "Fertig"
+                            DeviceState.ERROR     -> "Fehler"
+                        }
+                        Text(text = text, style = MaterialTheme.typography.bodyMedium.copy(color = Color.Gray))
+                    }
                 }
+
+                Spacer(Modifier.height(12.dp))
+                ControlCard(
+                    speed = localSpeed,
+                    onSpeedChange = {
+                        isEditing = true
+                        localSpeed = it
+                    },
+                    onSpeedChangeFinished = {
+                        isEditing = false
+                        vm.setSpeed(localSpeed.toInt())
+                    },
+                    isRunning = (deviceState == DeviceState.RUNNING),
+                    onStartOrPause = { if (deviceState == DeviceState.RUNNING) vm.pause() else vm.start() },
+                    onStop = { vm.stop() },
+                )
             }
-
-            Spacer(Modifier.height(12.dp))
-
-            // Steuerung + Speed
-            ControlCard(
-                speed = localSpeed,
-                onSpeedChange = {
-                    isEditing = true
-                    localSpeed = it
-                },
-                onSpeedChangeFinished = {
-                    isEditing = false
-                    vm.setSpeed(localSpeed.toInt())
-                },
-                onStart = { vm.start() },
-                onPause = { vm.pause() },
-                onStop = { vm.stop() },
-            )
-
-            Spacer(Modifier.height(12.dp))
         }
     }
 }
@@ -188,37 +181,70 @@ private fun PillRow(
     tempLabel: String,
     tempIconTint: Color
 ) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 14.dp)
             .padding(top = 10.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Pill(
-            leading = {
-                val icon = if (isConnected) Symbols.Antenna else Symbols.AntennaSlash
-                Icon(icon, contentDescription = null, tint = if (isConnected) Color(0xFF00BCD4) else LocalContentColor.current, modifier = Modifier.size(22.dp))
-            },
-            title = "Verbindung",
-            subtitle = if (isConnected) "Verbunden" else "Getrennt",
-            modifier = Modifier.weight(1f)
-        )
-        Pill(
-            leading = {
-                val ok = hasFilament
-                Icon(if (ok) Symbols.CheckCircle else Symbols.XCircle, contentDescription = null, tint = if (ok) Color(0xFF8E24AA) else LocalContentColor.current, modifier = Modifier.size(23.5.dp))
-            },
-            title = "Filament",
-            subtitle = if (hasFilament) "Erkannt" else "Nicht erkannt",
-            modifier = Modifier.weight(1f)
-        )
-        Pill(
-            leading = { Icon(if (tempIconTint == Color(0xFFD32F2F)) Symbols.ThermoHigh else Symbols.Thermo, contentDescription = null, tint = tempIconTint, modifier = Modifier.size(22.dp)) },
-            title = "Temperatur",
-            subtitle = tempLabel,
-            modifier = Modifier.weight(1f)
-        )
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            // Verbindung (links oben)
+            Pill(
+                leading = {
+                    val icon = if (isConnected) Symbols.Antenna else Symbols.AntennaSlash
+                    Icon(
+                        icon,
+                        contentDescription = null,
+                        tint = if (isConnected) Color(0xFF00BCD4) else LocalContentColor.current,
+                        modifier = Modifier.size(22.dp)
+                    )
+                },
+                title = "Verbindung",
+                subtitle = if (isConnected) "Verbunden" else "Getrennt",
+                modifier = Modifier.weight(1f)
+            )
+            // Temperatur (rechts oben)
+            Pill(
+                leading = {
+                    Icon(
+                        if (tempIconTint == Color(0xFFD32F2F)) Symbols.ThermoHigh else Symbols.Thermo,
+                        contentDescription = null,
+                        tint = tempIconTint,
+                        modifier = Modifier.size(22.dp)
+                    )
+                },
+                title = "Temperatur",
+                subtitle = tempLabel,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            // Filament (links unten)
+            Pill(
+                leading = {
+                    val ok = hasFilament
+                    Icon(
+                        if (ok) Symbols.CheckCircle else Symbols.XCircle,
+                        contentDescription = null,
+                        tint = if (ok) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+                        modifier = Modifier.size(23.5.dp)
+                    )
+                },
+                title = "Filament",
+                subtitle = if (hasFilament) "Erkannt" else "Nicht erkannt",
+                modifier = Modifier.weight(1f)
+            )
+            // Lüfter (rechts unten)
+            Pill(
+                leading = {
+                    Icon(Symbols.Fan, contentDescription = null, tint = LocalContentColor.current, modifier = Modifier.size(22.dp))
+                },
+                title = "Lüfter",
+                subtitle = "—",
+                modifier = Modifier.weight(1f)
+            )
+        }
     }
 }
 
@@ -325,38 +351,52 @@ private fun ControlCard(
     speed: Float,
     onSpeedChange: (Float) -> Unit,
     onSpeedChangeFinished: () -> Unit,
-    onStart: () -> Unit,
-    onPause: () -> Unit,
+    isRunning: Boolean,
+    onStartOrPause: () -> Unit,
     onStop: () -> Unit
 ) {
     Card(
         modifier = Modifier
             .padding(horizontal = 16.dp)
             .fillMaxWidth(),
-        shape = RoundedCornerShape(36),
+        shape = RoundedCornerShape(24),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f))
     ) {
         Column(Modifier.padding(12.dp)) {
             Row(
                 Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                PillButton(text = "Start", onClick = onStart, modifier = Modifier.weight(1f))
-                PillButton(text = "Pause", onClick = onPause, modifier = Modifier.weight(1f))
-                PillButton(text = "Stop",  onClick = onStop,  modifier = Modifier.weight(1f))
+                PillButton(
+                    text = if (isRunning) "Pause" else "Start",
+                    onClick = onStartOrPause,
+                    modifier = Modifier.weight(1f)
+                )
+                PillButton(
+                    text = "Stop",
+                    onClick = onStop,
+                    modifier = Modifier.weight(1f)
+                )
             }
-            Divider(Modifier.padding(vertical = 6.dp))
+            Divider(Modifier.padding(vertical = 12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Slider(
                     value = speed.coerceIn(50f, 100f),
                     onValueChange = { onSpeedChange(it) },
                     valueRange = 50f..100f,
-                    steps = 50, // 1%-Schritte
                     onValueChangeFinished = onSpeedChangeFinished,
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(Modifier.width(8.dp))
-                Text("${speed.toInt()} %", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                Box(
+                    modifier = Modifier.width(50.dp),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    Text(
+                        text = "${speed.toInt()} %",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
             }
         }
     }
@@ -377,7 +417,7 @@ private fun PillButton(
     Box(
         modifier = modifier
             .height(40.dp)
-            .clip(RoundedCornerShape(11))
+            .clip(CircleShape)
             .background(bg)
             .pointerInput(Unit) {
                 detectTapGestures(
@@ -399,19 +439,6 @@ private fun PillButton(
 /*                                 Utilities                                  */
 /* -------------------------------------------------------------------------- */
 
-@Composable
-private fun contentGradient(): Brush {
-    // Heller Top-Tint wie in Swift (helles Blau bei Light Mode)
-    val c = MaterialTheme.colorScheme
-    val topTint = c.primary.copy(alpha = if (isSystemInDarkTheme()) 0.00f else 0.05f)
-    val mid = c.background
-    val bottom = c.surfaceVariant
-    return Brush.verticalGradient(
-        colors = listOf(topTint, mid, bottom),
-        startY = 0f,
-        endY = with(LocalDensity.current) { 680.dp.toPx() }
-    )
-}
 
 @Composable
 private fun rememberSmoothRotation(targetRpm: Float): State<Float> {
@@ -462,6 +489,7 @@ private object Symbols {
     val XCircle = Icons.DefaultX
     val Thermo = Icons.DefaultThermo
     val ThermoHigh = Icons.DefaultThermoHigh
+    val Fan = Icons.DefaultFan
 }
 
 /** Dummy vector icons – ersetze durch deine bevorzugte Icon-Lib (z.B. phosphor, lucide, material). */
@@ -477,6 +505,8 @@ private object Icons {
     val DefaultThermo: ImageVector
         get() = materialPathIcon { moveTo(0f,0f); lineTo(0f,0f) }
     val DefaultThermoHigh: ImageVector
+        get() = materialPathIcon { moveTo(0f,0f); lineTo(0f,0f) }
+    val DefaultFan: ImageVector
         get() = materialPathIcon { moveTo(0f,0f); lineTo(0f,0f) }
 }
 
