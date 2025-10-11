@@ -1,4 +1,4 @@
-# ⚙️📱 LTS Control for Android 📱⚙️
+# ⚙️📱 LTS Control for Android
 
 LTS Control for Android is the companion app for the [LTS Respooler](https://github.com/LukasT03/LTS-Respooler). The app allows you to connect via Bluetooth Low Energy (BLE), monitor spool progress, and adjust key settings such as speed, transfer amount, and motor strength.
 
