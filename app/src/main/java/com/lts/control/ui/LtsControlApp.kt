@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 import com.lts.control.core.ble.BleViewModel
 import com.lts.control.ui.screens.ConnectionScreen
 import com.lts.control.ui.screens.ContentScreen
@@ -42,7 +43,7 @@ fun LtsControlApp(vm: BleViewModel) {
         },
         bottomBar = {
             NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface
+                containerColor = Color(0xFFF4F9FF)
             ) {
                 val navItemColors = NavigationBarItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.primary,

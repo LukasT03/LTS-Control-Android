@@ -68,8 +68,11 @@ fun ContentScreen(
     val barBgColor = when {
         isError -> MaterialTheme.colorScheme.error.copy(alpha = 0.20f)
         isPaused-> Color(0xFFFFA000).copy(alpha = 0.20f)
-        else    -> Color.Gray.copy(alpha = 0.20f)
+        else    -> Color.Gray.copy(alpha = 0.14f)
     }
+
+    // Light blue for screen background
+    val screenLightBlue = Color(0xFFF4F9FF)
 
     // Temperatur-Anzeige wie in Swift (>=65°C kritisch)
     val tempC = status?.chipTemperatureC
@@ -83,6 +86,15 @@ fun ContentScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colorStops = arrayOf(
+                        0.0f to screenLightBlue,   // top
+                        0.8f to screenLightBlue,  // keep blue until around the control section
+                        1.0f to Color.White        // bottom white
+                    )
+                )
+            )
     ) {
         Column(
             modifier = Modifier
@@ -123,7 +135,7 @@ fun ContentScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 16.dp)
+                    .padding(bottom = 0.dp)
             ) {
                 Column(Modifier.padding(horizontal = 16.dp)) {
                     val progressValue = if (deviceState == DeviceState.IDLE) 0f else progress.coerceIn(0f, 100f)
@@ -259,7 +271,7 @@ private fun Pill(
         modifier
             .height(50.dp)
             .clip(RoundedCornerShape(25))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f))
+            .background(Color.White)
             .padding(start = 12.dp, end = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -274,26 +286,7 @@ private fun Pill(
 
 @Composable
 private fun SpoolWithGradient() {
-    // Soft Radial Glow wie in Swift
-    val sizePx = with(LocalDensity.current) { 280.dp.toPx() }
-    val bgGlow = MaterialTheme.colorScheme.background.copy(alpha = 0.6f)
-    Canvas(Modifier.fillMaxSize()) {
-        val center = this.center
-        val radius = size.minDimension * 0.78f
-        // großer radialer Fade
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    bgGlow,
-                    Color.Transparent
-                ),
-                center = center,
-                radius = radius * 1.4f
-            ),
-            radius = radius * 1.4f,
-            center = center
-        )
-    }
+    // Gradient ring removed – intentionally left empty
 }
 
 @Composable
@@ -355,14 +348,22 @@ private fun ControlCard(
     onStartOrPause: () -> Unit,
     onStop: () -> Unit
 ) {
+    val controlBg = Color.White
     Card(
         modifier = Modifier
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = 16.dp, vertical = 0.dp)
             .fillMaxWidth(),
-        shape = RoundedCornerShape(24),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f))
+        shape = RoundedCornerShape(
+            topStart = 33.dp,
+            topEnd = 33.dp,
+            bottomStart = 0.dp,
+            bottomEnd = 0.dp
+        ),
+        colors = CardDefaults.cardColors(containerColor = controlBg)
     ) {
-        Column(Modifier.padding(12.dp)) {
+        Column(
+            Modifier.padding(start = 12.dp, top = 12.dp, end = 12.dp, bottom = 0.dp)
+        ) {
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -375,18 +376,31 @@ private fun ControlCard(
                 PillButton(
                     text = "Stop",
                     onClick = onStop,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    danger = true
                 )
             }
             Divider(Modifier.padding(vertical = 12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Slider(
-                    value = speed.coerceIn(50f, 100f),
-                    onValueChange = { onSpeedChange(it) },
-                    valueRange = 50f..100f,
-                    onValueChangeFinished = onSpeedChangeFinished,
-                    modifier = Modifier.weight(1f)
-                )
+                Box(modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                ) {
+                    Slider(
+                        value = speed.coerceIn(50f, 100f),
+                        onValueChange = { onSpeedChange(it) },
+                        valueRange = 50f..100f,
+                        onValueChangeFinished = onSpeedChangeFinished,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(30.dp),
+                        colors = SliderDefaults.colors(
+                            activeTrackColor = MaterialTheme.colorScheme.primary,
+                            inactiveTrackColor = Color.Gray.copy(alpha = 0.14f),
+                            thumbColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                }
                 Spacer(Modifier.width(8.dp))
                 Box(
                     modifier = Modifier.width(50.dp),
@@ -406,17 +420,18 @@ private fun ControlCard(
 private fun PillButton(
     text: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    danger: Boolean = false
 ) {
+    val base = if (danger) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
     val pressed = remember { mutableStateOf(false) }
     val bg by animateColorAsState(
-        targetValue = if (pressed.value) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-        else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+        targetValue = if (pressed.value) base.copy(alpha = 0.15f) else base.copy(alpha = 0.12f),
         animationSpec = tween(120), label = "btn-bg"
     )
     Box(
         modifier = modifier
-            .height(40.dp)
+            .height(44.dp)
             .clip(CircleShape)
             .background(bg)
             .pointerInput(Unit) {
@@ -431,7 +446,7 @@ private fun PillButton(
             },
         contentAlignment = Alignment.Center
     ) {
-        Text(text, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+        Text(text, fontWeight = FontWeight.SemiBold, color = base)
     }
 }
 
