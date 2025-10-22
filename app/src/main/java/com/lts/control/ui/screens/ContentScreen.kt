@@ -1,5 +1,10 @@
 package com.lts.control.ui.screens
 
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+
+import com.lts.control.R
+
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
@@ -86,20 +91,11 @@ fun ContentScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colorStops = arrayOf(
-                        0.0f to screenLightBlue,   // top
-                        0.8f to screenLightBlue,  // keep blue until around the control section
-                        1.0f to Color.White        // bottom white
-                    )
-                )
-            )
+            .background(screenLightBlue)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .navigationBarsPadding()
                 .imePadding()
         ) {
             // Pills (TOP, fixed)
@@ -119,8 +115,6 @@ fun ContentScreen(
                     .padding(top = 8.dp),
                 contentAlignment = Alignment.Center
             ) {
-                SpoolWithGradient()
-
                 // Rotations-Physik
                 val targetRpm = when (deviceState) {
                     DeviceState.RUNNING -> 60f
@@ -285,33 +279,21 @@ private fun Pill(
 }
 
 @Composable
-private fun SpoolWithGradient() {
-    // Gradient ring removed – intentionally left empty
-}
-
-@Composable
 private fun TimelapseDisc(rotation: Float) {
-    val base = 0.78f
-    val hole = 0.28f
-    val discTint = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
     Box(
         modifier = Modifier
-            .fillMaxSize(0.78f)
+            .fillMaxSize(0.7f)
             .aspectRatio(1f)
-            .rotate(rotation)
+            .rotate(rotation),
+        contentAlignment = Alignment.Center
     ) {
-        // Disc
-        Canvas(Modifier.fillMaxSize()) {
-            val r = size.minDimension / 2f
-            // outer
-            drawCircle(color = discTint)
-            // inner cutout
-            drawCircle(
-                color = Color.Transparent,
-                radius = r * hole,
-                blendMode = BlendMode.Clear
-            )
-        }
+        Image(
+            painter = painterResource(id = R.drawable.bambu_spool),
+            contentDescription = null,
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(CircleShape)
+        )
     }
 }
 
@@ -351,22 +333,21 @@ private fun ControlCard(
     val controlBg = Color.White
     Card(
         modifier = Modifier
-            .padding(horizontal = 16.dp, vertical = 0.dp)
             .fillMaxWidth(),
         shape = RoundedCornerShape(
-            topStart = 33.dp,
-            topEnd = 33.dp,
+            topStart = 37.dp,
+            topEnd = 37.dp,
             bottomStart = 0.dp,
             bottomEnd = 0.dp
         ),
         colors = CardDefaults.cardColors(containerColor = controlBg)
     ) {
         Column(
-            Modifier.padding(start = 12.dp, top = 12.dp, end = 12.dp, bottom = 0.dp)
+            Modifier.padding(start = 15.dp, top = 15.dp, end = 15.dp, bottom = 0.dp)
         ) {
             Row(
                 Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(15.dp)
             ) {
                 PillButton(
                     text = if (isRunning) "Pause" else "Start",
@@ -380,7 +361,7 @@ private fun ControlCard(
                     danger = true
                 )
             }
-            Divider(Modifier.padding(vertical = 12.dp))
+            Divider(Modifier.padding(vertical = 15.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(modifier = Modifier
                     .weight(1f)
@@ -393,7 +374,7 @@ private fun ControlCard(
                         onValueChangeFinished = onSpeedChangeFinished,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(30.dp),
+                            .height(38.dp),
                         colors = SliderDefaults.colors(
                             activeTrackColor = MaterialTheme.colorScheme.primary,
                             inactiveTrackColor = Color.Gray.copy(alpha = 0.14f),
@@ -412,6 +393,7 @@ private fun ControlCard(
                     )
                 }
             }
+            Spacer(Modifier.height(10.dp))
         }
     }
 }

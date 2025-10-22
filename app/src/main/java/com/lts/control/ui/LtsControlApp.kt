@@ -43,7 +43,7 @@ fun LtsControlApp(vm: BleViewModel) {
         },
         bottomBar = {
             NavigationBar(
-                containerColor = Color(0xFFF4F9FF)
+                containerColor = Color.White
             ) {
                 val navItemColors = NavigationBarItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.primary,
