@@ -10,6 +10,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -29,7 +30,11 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
 import com.lts.control.core.ble.BleViewModel
 import com.lts.control.core.ble.model.DeviceState
 import kotlinx.coroutines.flow.collectLatest
@@ -91,7 +96,15 @@ fun ContentScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(screenLightBlue)
+            .background(
+                brush = Brush.verticalGradient(
+                    colorStops = arrayOf(
+                        0.0f to screenLightBlue,
+                        0.8f to screenLightBlue,
+                        1.0f to Color.White
+                    )
+                )
+            )
     ) {
         Column(
             modifier = Modifier
@@ -115,48 +128,134 @@ fun ContentScreen(
                     .padding(top = 8.dp),
                 contentAlignment = Alignment.Center
             ) {
-                // Rotations-Physik
-                val targetRpm = when (deviceState) {
-                    DeviceState.RUNNING -> 60f
-                    DeviceState.UPDATING -> 20f
-                    else -> 0f
+                // --- Interactive rotation state (drag + physics + auto) ---
+                var rotation by remember { mutableFloatStateOf(0f) }
+                var angularVel by remember { mutableStateOf(0f) }
+                var isDragging by remember { mutableStateOf(false) }
+                var lastAngle by remember { mutableStateOf<Float?>(null) }
+                var boxSize by remember { mutableStateOf(IntSize.Zero) }
+
+                // Physics loop: inertia when released; auto-rotate when device runs
+                LaunchedEffect(deviceState) {
+                    val maxVel = 15f
+                    val friction = 0.992f
+                    var last = withFrameNanos { it }
+                    while (true) {
+                        val now = withFrameNanos { it }
+                        val dt = (now - last) / 1_000_000_000f
+                        last = now
+
+                        val autoVel = when (deviceState) {
+                            DeviceState.RUNNING -> maxVel
+                            DeviceState.UPDATING -> 5f
+                            else -> 0f
+                        }
+
+                        // If user is dragging, keep current angularVel (set by gestures)
+                        angularVel = when {
+                            isDragging -> angularVel
+                            kotlin.math.abs(angularVel) > 0.01f -> angularVel * friction
+                            else -> autoVel
+                        }
+
+                        val clamped = angularVel.coerceIn(-maxVel, maxVel)
+                        rotation = (rotation + clamped * dt * 60f) % 360f
+                    }
                 }
-                val rotation by rememberSmoothRotation(targetRpm = targetRpm)
-                TimelapseDisc(rotation = rotation)
+
+                // Gesture: one-finger drag to spin (angle around center)
+                val center by remember(boxSize) {
+                    mutableStateOf(Offset(boxSize.width / 2f, boxSize.height / 2f))
+                }
+                fun angleAt(p: Offset): Float = Math.toDegrees(kotlin.math.atan2(
+                    (p.y - center.y).toDouble(),
+                    (p.x - center.x).toDouble()
+                )).toFloat()
+                val deadZoneRadiusPx = remember(boxSize) { (min(boxSize.width, boxSize.height) * 0.25f) }
+
+                TimelapseDisc(
+                    rotation = rotation,
+                    modifier = Modifier
+                        .onSizeChanged { boxSize = it }
+                        .pointerInput(Unit) {
+                            detectDragGestures(
+                                onDragStart = { pos ->
+                                    val d = (pos - center).getDistance()
+                                    if (d < deadZoneRadiusPx) {
+                                        // ignore drags starting in the hub
+                                        return@detectDragGestures
+                                    }
+                                    isDragging = true
+                                    lastAngle = angleAt(pos)
+                                    angularVel = 0f
+                                },
+                                onDragEnd = {
+                                    isDragging = false
+                                    lastAngle = null
+                                },
+                                onDragCancel = {
+                                    isDragging = false
+                                    lastAngle = null
+                                }
+                            ) { change, _ ->
+                                val a = angleAt(change.position)
+                                lastAngle?.let { prev ->
+                                    var delta = a - prev
+                                    if (delta > 180f) delta -= 360f
+                                    if (delta < -180f) delta += 360f
+                                    rotation = (rotation + delta) % 360f
+                                    angularVel = delta * 6f // scale for inertia feel
+                                }
+                                lastAngle = a
+                                change.consume()
+                            }
+                        }
+                )
             }
 
             // Status & Controls (BOTTOM, fixed)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(horizontal = 14.dp)
                     .padding(bottom = 0.dp)
             ) {
-                Column(Modifier.padding(horizontal = 16.dp)) {
+                Column(Modifier.padding(horizontal = 34.dp)) {
                     val progressValue = if (deviceState == DeviceState.IDLE) 0f else progress.coerceIn(0f, 100f)
-                    StatusProgress(
-                        fraction = progressValue / 100f,
-                        bar = barColor,
-                        track = barBgColor
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    AnimatedContent(
-                        targetState = deviceState to remaining,
-                        transitionSpec = { fadeIn(tween(180)) with fadeOut(tween(180)) }
-                    ) { (state, rem) ->
-                        val text = when (state) {
-                            DeviceState.IDLE      -> "Bereit"
-                            DeviceState.RUNNING   -> "Läuft • Rest: ${formatSeconds(rem)}"
-                            DeviceState.PAUSED    -> "Pausiert"
-                            DeviceState.AUTO_STOP -> "Auto-Stopp"
-                            DeviceState.UPDATING  -> "Wird aktualisiert…"
-                            DeviceState.DONE      -> "Fertig"
-                            DeviceState.ERROR     -> "Fehler"
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        AnimatedContent(
+                            targetState = deviceState to remaining,
+                            transitionSpec = { fadeIn(tween(180)) with fadeOut(tween(180)) }
+                        ) { (state, rem) ->
+                            val text = when (state) {
+                                DeviceState.IDLE      -> "Leerlauf"
+                                DeviceState.RUNNING   -> "Läuft..."
+                                DeviceState.PAUSED    -> "Pausiert"
+                                DeviceState.AUTO_STOP -> "Auto-Stopp"
+                                DeviceState.UPDATING  -> "Wird aktualisiert..."
+                                DeviceState.DONE      -> "Fertig"
+                                DeviceState.ERROR     -> "Fehler"
+                            }
+                            Text(
+                                text = text,
+                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 17.sp).copy(color = Color.Gray),
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
                         }
-                        Text(text = text, style = MaterialTheme.typography.bodyMedium.copy(color = Color.Gray))
+                        Spacer(Modifier.height(10.dp))
+                        StatusProgress(
+                            fraction = progressValue / 100f,
+                            bar = barColor,
+                            track = barBgColor
+                        )
                     }
                 }
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(16.dp))
                 ControlCard(
                     speed = localSpeed,
                     onSpeedChange = {
@@ -264,7 +363,7 @@ private fun Pill(
     Row(
         modifier
             .height(50.dp)
-            .clip(RoundedCornerShape(25))
+            .clip(RoundedCornerShape(50))
             .background(Color.White)
             .padding(start = 12.dp, end = 10.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -272,16 +371,16 @@ private fun Pill(
         Box(Modifier.size(28.dp), contentAlignment = Alignment.Center) { leading() }
         Spacer(Modifier.width(6.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(subtitle, style = MaterialTheme.typography.bodyMedium.copy(color = Color.Gray), maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
 
 @Composable
-private fun TimelapseDisc(rotation: Float) {
+private fun TimelapseDisc(rotation: Float, modifier: Modifier = Modifier) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize(0.7f)
             .aspectRatio(1f)
             .rotate(rotation),
@@ -308,8 +407,8 @@ private fun StatusProgress(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(14.dp)
-            .clip(RoundedCornerShape(7.dp))
+            .height(16.dp)
+            .clip(RoundedCornerShape(8.dp))
             .background(track)
     ) {
         Box(
@@ -335,19 +434,19 @@ private fun ControlCard(
         modifier = Modifier
             .fillMaxWidth(),
         shape = RoundedCornerShape(
-            topStart = 37.dp,
-            topEnd = 37.dp,
+            topStart = 34.dp,
+            topEnd = 34.dp,
             bottomStart = 0.dp,
             bottomEnd = 0.dp
         ),
         colors = CardDefaults.cardColors(containerColor = controlBg)
     ) {
         Column(
-            Modifier.padding(start = 15.dp, top = 15.dp, end = 15.dp, bottom = 0.dp)
+            Modifier.padding(start = 12.dp, top = 12.dp, end = 12.dp, bottom = 0.dp)
         ) {
             Row(
                 Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(15.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 PillButton(
                     text = if (isRunning) "Pause" else "Start",
@@ -355,13 +454,13 @@ private fun ControlCard(
                     modifier = Modifier.weight(1f)
                 )
                 PillButton(
-                    text = "Stop",
+                    text = "Stopp",
                     onClick = onStop,
                     modifier = Modifier.weight(1f),
                     danger = true
                 )
             }
-            Divider(Modifier.padding(vertical = 15.dp))
+            Divider(Modifier.padding(vertical = 12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(modifier = Modifier
                     .weight(1f)
@@ -389,7 +488,7 @@ private fun ControlCard(
                 ) {
                     Text(
                         text = "${speed.toInt()} %",
-                        style = MaterialTheme.typography.bodyLarge
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 17.sp).copy(color = Color.Gray)
                     )
                 }
             }
@@ -428,7 +527,7 @@ private fun PillButton(
             },
         contentAlignment = Alignment.Center
     ) {
-        Text(text, fontWeight = FontWeight.SemiBold, color = base)
+        Text(text, color = base, style = MaterialTheme.typography.titleMedium)
     }
 }
 
