@@ -5,23 +5,22 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * JSON vom ESP32 (Notification auf NOTIFY-Characteristic).
- * Feldnamen gemäß Firmware: STAT, HAS_FIL, USE_FIL, PROG, REM, TEMP, WIFI_SSID, WIFI_OK, FW, OTA_OK, ...
- * Quelle: ESP32 Sketch sendStatus() u.a. Helfer.
+ * JSON from ESP32 (Notification on NOTIFY-Characteristic).
  */
 @Serializable
 data class StatusPayload(
-    // Primäre Felder
-    @SerialName("STAT") val stat: String? = null,      // z.B. "I","R","P","A","U","D"
+    // Primary fields
+    @SerialName("STAT") val stat: String? = null,
     @SerialName("HAS_FIL") val hasFilament: Boolean? = null,
     @SerialName("USE_FIL") val useFilamentSensor: Boolean? = null,
-    @SerialName("PROG") val progressPercent: Float? = null, // 0..100
+    @SerialName("PROG") val progressPercent: Float? = null,
     @SerialName("REM") val remainingSeconds: Int? = null,
     @SerialName("TEMP") val chipTemperatureC: Int? = null,
     @SerialName("WIFI_SSID") val wifiSsid: String? = null,
     @SerialName("WIFI_OK") val wifiConnected: Boolean? = null,
     @SerialName("FW") val firmwareVersion: String? = null,
     @SerialName("OTA_OK") val otaOk: Boolean? = null,
+    @SerialName("VAR") val boardVariant: BoardVariant? = null,
 
     // Settings Echo
     @SerialName("SPD") val speedPercent: Int? = null,
@@ -29,17 +28,23 @@ data class StatusPayload(
     @SerialName("LED") val ledBrightness: Int? = null,
     @SerialName("DIR") val motorDirection: Int? = null,
     @SerialName("POW") val motorStrength: Int? = null,
-    @SerialName("TRQ") val torqueLimit: Int? = null,   // 0..3
-    @SerialName("WGT") val targetWeight: Int? = null,  // 0..3
-    @SerialName("DUR") val durationAt80: Int? = null, // Sekunden
-    @SerialName("HS")  val highSpeed: Boolean? = null,
+    @SerialName("TRQ") val torqueLimit: Int? = null,
+    @SerialName("WGT") val targetWeight: Int? = null,
+    @SerialName("DUR") val durationAt80: Int? = null,
+    @SerialName("HS") val highSpeed: Boolean? = null,
 
     // Fan
     @SerialName("FAN_SPD") val fanSpeed: Int? = null,
     @SerialName("FAN_ON") val fanOn: Boolean? = null,
     @SerialName("FAN_ALW") val fanAlwaysOn: Boolean? = null,
 
-    // Event-spezifische Felder (WiFi/OTA result etc.)
+    // Servo (Pro only)
+    @SerialName("SV_R") val servoAngleR: Int? = null,
+    @SerialName("SV_L") val servoAngleL: Int? = null,
+    @SerialName("SV_STP") val servoStepMm: Double? = null,
+    @SerialName("SV_HOME") val servoHome: String? = null,
+
+    // Event-specific fields
     @SerialName("SSID_LIST") val ssidList: List<String>? = null,
     @SerialName("WIFI_CONN_RESULT") val wifiConnectResult: Boolean? = null
 ) {

@@ -3,19 +3,11 @@ package com.lts.control.ui.screens
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -42,16 +34,30 @@ fun AppLanguage.applyToApp() = AppCompatDelegate.setApplicationLocales(
 )
 
 @Composable
-internal fun LanguageRow() {
+fun LanguagePickerPreferenceRow() {
     var showDialog by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf(AppLanguage.current()) }
 
-    RowSetting(
-        title = stringResource(R.string.set_language),
-        subtitle = stringResource(selected.labelRes),
-        clickable = true,
-        onClick = { showDialog = true }
+    ListItem(
+        modifier = Modifier.clickable { showDialog = true },
+        headlineContent = { Text(stringResource(R.string.set_language), style = MaterialTheme.typography.bodyLarge) },
+        trailingContent = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(selected.labelRes),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.width(6.dp))
+                Icon(
+                    imageVector = Icons.Filled.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                )
+            }
+        }
     )
+    HorizontalDivider()
 
     if (showDialog) {
         AlertDialog(
@@ -73,6 +79,7 @@ internal fun LanguageRow() {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             RadioButton(selected = lang == selected, onClick = null)
+                            Spacer(Modifier.width(8.dp))
                             Text(stringResource(lang.labelRes))
                         }
                     }

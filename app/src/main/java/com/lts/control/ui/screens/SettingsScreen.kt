@@ -2,105 +2,78 @@
 package com.lts.control.ui.screens
 
 import android.Manifest
-import android.app.Application
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.Divider
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.rounded.PauseCircle
-import androidx.compose.material.icons.rounded.PlayCircle
-import androidx.compose.material.icons.rounded.PowerSettingsNew
-import androidx.compose.material.icons.rounded.SignalCellularConnectedNoInternet0Bar
-import androidx.compose.material.icons.rounded.SystemUpdateAlt
-import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.lts.control.core.ble.BleViewModel
-import com.lts.control.core.ble.model.DeviceState
 import com.lts.control.R
+import com.lts.control.core.ble.BleViewModel
+import com.lts.control.core.ble.model.BoardVariant
+import com.lts.control.core.ble.model.DeviceState
 import com.lts.control.core.ble.model.labelRes
-import kotlin.math.max
-import kotlin.math.min
-
-/* -------------------------------------------------------------------------- */
-/*                                 Entry Point                                */
-/* -------------------------------------------------------------------------- */
+import com.lts.control.ui.theme.*
+import java.util.Locale
 
 @Composable
 fun SettingsScreen(
     vm: BleViewModel,
-    onOpenRespoolAmount: () -> Unit
+    onOpenRespoolAmount: () -> Unit,
+    onOpenBoardVariant: () -> Unit = {},
+    onOpenServoCalibration: () -> Unit = {}
 ) {
     val status by vm.status.collectAsState()
-    val deviceState by vm.deviceState.collectAsState()
-    val highSpeed by vm.highSpeed.collectAsState(initial = false)
-
+    val isConnected by vm.isConnected.collectAsState()
+    val deviceState = status.deviceState
     val context = LocalContext.current
-    val prefs = remember(context) { AppPrefs(context) }
-    var showFahrenheit by remember { mutableStateOf(prefs.temperatureInFahrenheit) }
-    var notificationsOn by remember { mutableStateOf(prefs.notificationsEnabled) }
 
     val requestNotifLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { granted ->
-            notificationsOn = granted
-            prefs.notificationsEnabled = granted
+            vm.setNotificationsEnabled(granted)
         }
     )
-    fun ensureNotificationPermission(context: Context) {
-        if (Build.VERSION.SDK_INT >= 33) {
-            val granted = context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
-            if (!granted) requestNotifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-        } else {
-            // Ältere Android-Versionen: aktiv ist gleich "erlaubt"
-            notificationsOn = true
-            prefs.notificationsEnabled = true
-        }
-    }
 
-    val chipTemp = status?.chipTemperatureC
-    val tempCritical = (chipTemp ?: 0) >= 65
+    fun onNotificationToggle(checked: Boolean) {
+        if (checked && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val granted = context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+            if (!granted) {
+                requestNotifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                return
+            }
+        }
+        vm.setNotificationsEnabled(checked)
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .background(MaterialTheme.colorScheme.background)
-            .padding(bottom = 12.dp)
+            .padding(bottom = 24.dp)
     ) {
         /* ------------------------------ Status-Kapsel ------------------------------ */
         Row(
@@ -109,17 +82,18 @@ fun SettingsScreen(
                 .fillMaxWidth()
         ) {
             val (icon, tint) = when {
-                status == null -> Icons.Rounded.SignalCellularConnectedNoInternet0Bar to LocalContentColor.current.copy(alpha = 0.75f)
+                !isConnected -> Icons.Rounded.SignalCellularConnectedNoInternet0Bar to MaterialTheme.colorScheme.onSurfaceVariant
                 else -> when (deviceState) {
-                    DeviceState.RUNNING   -> Icons.Rounded.PlayCircle   to Color(0xFF2E7D32)
-                    DeviceState.PAUSED    -> Icons.Rounded.PauseCircle  to Color(0xFFFFA000)
-                    DeviceState.UPDATING  -> Icons.Rounded.SystemUpdateAlt to Color(0xFF3F51B5)
-                    DeviceState.DONE      -> Icons.Filled.Check         to Color(0xFF2ECC71)
-                    DeviceState.AUTO_STOP -> Icons.Rounded.Warning      to Color(0xFFD32F2F)
+                    DeviceState.RUNNING   -> Icons.Rounded.PlayCircle   to StateNormalGreen
+                    DeviceState.PAUSED    -> Icons.Rounded.PauseCircle  to StatePausedOrange
+                    DeviceState.UPDATING  -> Icons.Rounded.SystemUpdateAlt to MaterialTheme.colorScheme.primary
+                    DeviceState.DONE      -> Icons.Filled.Check         to StateDoneGreen
+                    DeviceState.AUTO_STOP -> Icons.Rounded.Warning      to MaterialTheme.colorScheme.error
                     DeviceState.IDLE,
-                    DeviceState.ERROR     -> Icons.Rounded.PowerSettingsNew to Color(0xFF0C4C98)
+                    DeviceState.ERROR     -> Icons.Rounded.PowerSettingsNew to MaterialTheme.colorScheme.primary
                 }
             }
+
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(25))
@@ -128,228 +102,232 @@ fun SettingsScreen(
                     .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(16.dp))
                 Icon(icon, contentDescription = null, tint = tint)
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(stringResource(R.string.set_status), style = MaterialTheme.typography.titleSmall)
-                    val subtitleRes = deviceState.labelRes()
+                    val subtitleText = if (isConnected) stringResource(deviceState.labelRes()) else stringResource(R.string.common_disconnected)
                     AnimatedContent(
-                        targetState = subtitleRes,
-                        transitionSpec = {
-                            fadeIn(animationSpec = tween(180)) togetherWith fadeOut(animationSpec = tween(180))
-                        },
+                        targetState = subtitleText,
+                        transitionSpec = { fadeIn(tween(180)) togetherWith fadeOut(tween(180)) },
                         label = "stateText"
-                    ) { state ->
-                        Text(stringResource(state), style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                    ) { text ->
+                        Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(16.dp))
             }
         }
 
-        /* -------------------------------- Konfiguration ------------------------------- */
+        /* ------------------------------ Konfiguration ------------------------------ */
         SectionHeader(stringResource(R.string.set_section_configuration))
         SettingsCard {
-            // Jingle
-            RowSetting(
+            // Jingle Picker
+            val jingleNames = listOf(
+                stringResource(R.string.jingle_off),
+                stringResource(R.string.jingle_simple),
+                stringResource(R.string.jingle_glissando),
+                stringResource(R.string.jingle_star_wars)
+            )
+            DropdownRow(
                 title = stringResource(R.string.set_completion_sound),
-                trailing = {
-                    var expanded by remember { mutableStateOf(false) }
-                    val current = when (status?.jingleStyle ?: 0) {
-                        1 -> stringResource(R.string.jingle_simple)
-                        2 -> stringResource(R.string.jingle_glissando)
-                        3 -> stringResource(R.string.jingle_star_wars)
-                        else -> stringResource(R.string.jingle_off)
-                    }
-                    Box {
-                        Text(current, color = Color.Gray, modifier = Modifier
-                            .clip(RoundedCornerShape(8))
-                            .clickable { expanded = true }
-                            .padding(horizontal = 8.dp, vertical = 4.dp))
-                        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                            listOf(
-                                0 to stringResource(R.string.jingle_off),
-                                1 to stringResource(R.string.jingle_simple),
-                                2 to stringResource(R.string.jingle_glissando),
-                                3 to stringResource(R.string.jingle_star_wars)
-                            ).forEach { (tag, label) ->
-                                DropdownMenuItem(
-                                    text = { Text(label) },
-                                    onClick = {
-                                        val newVal = tag
-                                        vm.setJingle(newVal)
-                                        expanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
+                options = jingleNames,
+                selectedIndex = status.jingleStyle.coerceIn(0, jingleNames.lastIndex),
+                onSelected = { vm.setJingle(it) }
             )
 
-            // LED Helligkeit (0..100, Schritt 10)
-            var ledLocal by remember { mutableStateOf((status?.ledBrightness ?: 50).toFloat()) }
-            LaunchedEffect(status?.ledBrightness) { ledLocal = (status?.ledBrightness ?: 50).toFloat() }
-            SliderRow(
+            // LED Brightness: Stepper (0-100, step 10) per §5.4
+            StepperRow(
                 title = stringResource(R.string.set_led_brightness),
-                valueText = stringResource(R.string.percent_value, ledLocal.toInt()),
-                value = ledLocal,
-                valueRange = 0f..100f,
-                steps = 9,
-                onChange = { ledLocal = it },
-                onFinish = { vm.setLed(ledLocal.toInt()) }
+                currentLabel = "${status.ledBrightness} %",
+                minusEnabled = status.ledBrightness > 0,
+                plusEnabled = status.ledBrightness < 100,
+                onMinus = { vm.setLed(status.ledBrightness - 10) },
+                onPlus = { vm.setLed(status.ledBrightness + 10) }
             )
 
-            // Respool-Menge (zeigt aktuelle Auswahl)
-            RowSetting(
+            // Respool Amount
+            val respoolLabel = when (status.targetWeight) {
+                1 -> stringResource(R.string.weight_1_0kg)
+                2 -> stringResource(R.string.weight_0_5kg)
+                3 -> stringResource(R.string.weight_0_25kg)
+                else -> stringResource(R.string.respool_entire_spool)
+            }
+            NavigationRow(
                 title = stringResource(R.string.set_respool_amount),
-                subtitle = when (status?.targetWeight ?: 0) {
-                    1 -> stringResource(R.string.weight_1_0kg)
-                    2 -> stringResource(R.string.weight_0_5kg)
-                    3 -> stringResource(R.string.weight_0_25kg)
-                    else -> stringResource(R.string.respool_entire_spool)
-                },
-                clickable = true,
+                subtitle = respoolLabel,
                 onClick = onOpenRespoolAmount
             )
 
-            // Filament Sensor
+            // Board Variant row (only when STD or PRO per §5.2)
+            if (status.boardVariant == BoardVariant.STANDARD || status.boardVariant == BoardVariant.PRO) {
+                val variantLabel = if (status.boardVariant == BoardVariant.PRO) {
+                    stringResource(R.string.variant_pro)
+                } else {
+                    stringResource(R.string.variant_v4)
+                }
+                NavigationRow(
+                    title = stringResource(R.string.set_variant),
+                    subtitle = variantLabel,
+                    onClick = onOpenBoardVariant
+                )
+            }
+
+            // Filament Sensor Toggle
             ToggleRow(
                 title = stringResource(R.string.set_use_filament_sensor),
-                checked = status?.useFilamentSensor ?: true,
-                onChecked = { vm.setFilamentSensor(it) }
+                checked = status.useFilamentSensor,
+                onCheckedChange = { vm.setFilamentSensor(it) }
             )
         }
         SectionFooter(stringResource(R.string.set_footer_filament_sensor))
 
-        /* ----------------------------------- Motor ----------------------------------- */
+        /* ------------------------------ Motor ------------------------------ */
         SectionHeader(stringResource(R.string.set_section_motor))
         SettingsCard {
             ToggleRow(
                 title = stringResource(R.string.set_reverse_direction),
-                checked = (status?.motorDirection ?: 0) == 1,
-                onChecked = { on -> vm.setDirection(if (on) 1 else 0) }
+                checked = status.directionReversed,
+                onCheckedChange = { vm.setDirectionReversed(it) }
             )
 
-            // Stärke 80..120 in 10er Schritten
-            var powLocal by remember { mutableStateOf((status?.motorStrength ?: 100).toFloat()) }
-            LaunchedEffect(status?.motorStrength) { powLocal = (status?.motorStrength ?: 100).toFloat() }
             StepperRow(
                 title = stringResource(R.string.set_strength),
-                valueText = stringResource(R.string.percent_value, powLocal.toInt()),
-                value = powLocal,
-                range = 80f..120f,
-                step = 10f,
-                onChange = { powLocal = it },
-                onFinish = { vm.setMotorStrength(powLocal.toInt()) }
+                currentLabel = "${status.motorStrength} %",
+                minusEnabled = status.motorStrength > 80,
+                plusEnabled = status.motorStrength < 120,
+                onMinus = { vm.setMotorStrength(status.motorStrength - 10) },
+                onPlus = { vm.setMotorStrength(status.motorStrength + 10) }
             )
 
-            // Auto-Stopp Empfindlichkeit (0..3)
-            var tlLocal by remember { mutableStateOf((status?.torqueLimit ?: 0).toFloat()) }
-            LaunchedEffect(status?.torqueLimit) { tlLocal = (status?.torqueLimit ?: 0).toFloat() }
-            val hs = highSpeed
-            PickerRow(
+            // Auto-stop sensitivity: Dropdown per §5.4
+            val sensitivityNames = listOf(
+                stringResource(R.string.sensitivity_off),
+                stringResource(R.string.sensitivity_low),
+                stringResource(R.string.sensitivity_medium),
+                stringResource(R.string.sensitivity_high)
+            )
+            DropdownRow(
                 title = stringResource(R.string.set_auto_stop_sensitivity),
-                enabled = !hs,
-                currentLabel = when (tlLocal.toInt()) {
-                    1 -> stringResource(R.string.sensitivity_low)
-                    2 -> stringResource(R.string.sensitivity_medium)
-                    3 -> stringResource(R.string.sensitivity_high)
-                    else -> stringResource(R.string.sensitivity_off)
-                },
-                onNext = {
-                    val next = (tlLocal.toInt() + 1).coerceAtMost(3)
-                    tlLocal = next.toFloat()
-                    vm.setTorque(next)
-                },
-                onPrev = {
-                    val prev = (tlLocal.toInt() - 1).coerceAtLeast(0)
-                    tlLocal = prev.toFloat()
-                    vm.setTorque(prev)
-                }
+                options = sensitivityNames,
+                selectedIndex = status.torqueLimit.coerceIn(0, sensitivityNames.lastIndex),
+                onSelected = { vm.setTorque(it) },
+                enabled = !status.highSpeed
             )
         }
         SectionFooter(stringResource(R.string.set_footer_auto_stop))
 
-        /* -------------------------------- High-Speed --------------------------------- */
         SettingsCard {
             ToggleRow(
                 title = stringResource(R.string.set_high_speed),
-                checked = highSpeed,
-                onChecked = { vm.setHighSpeed(it) }
+                checked = status.highSpeed,
+                onCheckedChange = { vm.setHighSpeed(it) }
             )
         }
         SectionFooter(stringResource(R.string.set_footer_high_speed))
 
-        /* ----------------------------------- Lüfter ---------------------------------- */
+        /* ------------------------------ Servo (Pro only §5.3) ------------------------------ */
+        if (status.isProBoard) {
+            SectionHeader(stringResource(R.string.set_section_servo))
+            SettingsCard {
+                NavigationRow(
+                    title = stringResource(R.string.set_calibrate_end_positions),
+                    subtitle = "",
+                    onClick = onOpenServoCalibration
+                )
+
+                // Stepper: 0.50..4.00 mm, step 0.01
+                StepperRow(
+                    title = stringResource(R.string.servo_step_width, status.servoStepMm),
+                    currentLabel = String.format(Locale.US, "%.2f mm", status.servoStepMm),
+                    minusEnabled = status.servoStepMm > 0.50,
+                    plusEnabled = status.servoStepMm < 4.00,
+                    onMinus = { vm.setServoStepMm(maxOf(0.50, (status.servoStepMm - 0.01))) },
+                    onPlus = { vm.setServoStepMm(minOf(4.00, (status.servoStepMm + 0.01))) }
+                )
+
+                // Segmented Control: Home side Links / Rechts
+                val sideOptions = listOf(
+                    stringResource(R.string.servo_side_left),
+                    stringResource(R.string.servo_side_right)
+                )
+                val selectedSideIdx = if (status.servoHome.uppercase() == "L") 0 else 1
+                SegmentedRow(
+                    title = stringResource(R.string.set_section_servo),
+                    options = sideOptions,
+                    selectedIndex = selectedSideIdx,
+                    onSelected = { idx ->
+                        vm.setServoHome(if (idx == 0) "L" else "R")
+                    }
+                )
+            }
+            SectionFooter(stringResource(R.string.servo_footer))
+        }
+
+        /* ------------------------------ Lüfter ------------------------------ */
         SectionHeader(stringResource(R.string.set_section_fan))
         SettingsCard {
-            var fanLocal by remember { mutableStateOf((status?.fanSpeed ?: 60).toFloat()) }
-            LaunchedEffect(status?.fanSpeed) { fanLocal = (status?.fanSpeed ?: 60).toFloat() }
             StepperRow(
                 title = stringResource(R.string.set_speed),
-                valueText = stringResource(R.string.percent_value, fanLocal.toInt()),
-                value = fanLocal,
-                range = 10f..100f,
-                step = 10f,
-                onChange = { fanLocal = it },
-                onFinish = { vm.setFanSpeed(fanLocal.toInt()) }
+                currentLabel = "${status.fanSpeed} %",
+                minusEnabled = status.fanSpeed > 10,
+                plusEnabled = status.fanSpeed < 100,
+                onMinus = { vm.setFanSpeed(status.fanSpeed - 10) },
+                onPlus = { vm.setFanSpeed(status.fanSpeed + 10) }
             )
+
             ToggleRow(
                 title = stringResource(R.string.set_fan_always_on),
-                checked = status?.fanAlwaysOn ?: (status?.fanAlwaysOn == true),
-                onChecked = { vm.setFanAlways(it) }
+                checked = status.fanAlways,
+                onCheckedChange = { vm.setFanAlways(it) }
             )
-            // Temperatur-Einheit (Segment)
+
+            // Temperature Unit
+            val unitOptions = listOf(stringResource(R.string.unit_celsius), stringResource(R.string.unit_fahrenheit))
             SegmentedRow(
                 title = stringResource(R.string.set_temperature_unit),
-                options = listOf(stringResource(R.string.unit_celsius), stringResource(R.string.unit_fahrenheit)),
-                selectedIndex = if (showFahrenheit) 1 else 0
-            ) { idx: Int ->
-                showFahrenheit = (idx == 1)
-                prefs.temperatureInFahrenheit = showFahrenheit
-            }
+                options = unitOptions,
+                selectedIndex = if (status.temperatureInFahrenheit) 1 else 0,
+                onSelected = { idx -> vm.setTemperatureInFahrenheit(idx == 1) }
+            )
         }
         SectionFooter(stringResource(R.string.set_footer_fan))
 
-        /* -------------------------------- Kalibrierung ------------------------------- */
+        /* ------------------------------ Kalibrierung ------------------------------ */
         SectionHeader(stringResource(R.string.set_section_calibration))
         SettingsCard {
-            var durLocal by remember { mutableStateOf((status?.durationAt80 ?: 895).toFloat()) }
-            LaunchedEffect(status?.durationAt80) { durLocal = (status?.durationAt80 ?: 895).toFloat() }
+            val min = status.durationAt80 / 60
+            val sec = status.durationAt80 % 60
             StepperRow(
                 title = stringResource(R.string.set_duration),
-                valueText = durLocal.toInt().let { s -> stringResource(R.string.duration_value, s / 60, s % 60) },
-                value = durLocal,
-                range = 5f..2000f,
-                step = 5f,
-                onChange = { durLocal = it },
-                onFinish = { vm.setDurationAt80(durLocal.toInt()) }
+                currentLabel = stringResource(R.string.duration_value, min, sec),
+                minusEnabled = status.durationAt80 > 5,
+                plusEnabled = status.durationAt80 < 2000,
+                onMinus = { vm.setDurationAt80(maxOf(5, status.durationAt80 - 5)) },
+                onPlus = { vm.setDurationAt80(minOf(2000, status.durationAt80 + 5)) }
             )
         }
         SectionFooter(stringResource(R.string.set_footer_calibration))
 
-        /* ------------------------------------- App ----------------------------------- */
+        /* ------------------------------ App ------------------------------ */
         SectionHeader(stringResource(R.string.set_section_app))
         SettingsCard {
-            LanguageRow()
             ToggleRow(
                 title = stringResource(R.string.set_notifications),
-                checked = notificationsOn,
-                onChecked = { on ->
-                    val ctx = context
-                    if (on) {
-                        ensureNotificationPermission(ctx)
-                    } else {
-                        notificationsOn = false
-                        prefs.notificationsEnabled = false
-                    }
-                }
+                checked = status.notificationsEnabled,
+                onCheckedChange = { onNotificationToggle(it) }
             )
+
+            ToggleRow(
+                title = stringResource(R.string.set_ongoing_notification),
+                checked = status.ongoingNotificationEnabled,
+                onCheckedChange = { vm.setOngoingNotificationEnabled(it) }
+            )
+
+            LanguagePickerPreferenceRow()
         }
         SectionFooter(stringResource(R.string.set_footer_notifications))
-        Spacer(Modifier.height(18.dp))
     }
 }
 
@@ -363,25 +341,28 @@ fun RespoolAmountScreen(
     onBack: () -> Unit
 ) {
     val status by vm.status.collectAsState()
-    val current = status?.targetWeight ?: 0
+    val current = status.targetWeight
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.respool_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
             )
         }
     ) { padding ->
         Column(
             modifier = Modifier
+                .fillMaxSize()
                 .padding(padding)
+                .background(MaterialTheme.colorScheme.background)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Entire Spool
             SectionHeaderSpacer()
             SettingsCard {
                 SingleChoiceRow(
@@ -392,7 +373,6 @@ fun RespoolAmountScreen(
             }
             SectionFooter(stringResource(R.string.respool_footer_entire))
 
-            // Fixed weights
             SectionHeaderSpacer()
             SettingsCard {
                 listOf(
@@ -407,9 +387,7 @@ fun RespoolAmountScreen(
                     )
                 }
             }
-            SectionFooter(
-                stringResource(R.string.respool_footer_fixed)
-            )
+            SectionFooter(stringResource(R.string.respool_footer_fixed))
         }
     }
 }
@@ -420,17 +398,18 @@ fun RespoolAmountScreen(
 
 @Composable private fun SectionHeader(text: String) {
     Text(
-        text,
+        text = text,
         modifier = Modifier.padding(start = 16.dp, top = 18.dp, bottom = 8.dp),
         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium),
         color = MaterialTheme.colorScheme.primary
     )
 }
+
 @Composable private fun SectionHeaderSpacer() { Spacer(Modifier.height(8.dp)) }
 
 @Composable private fun SectionFooter(text: String) {
     Text(
-        text,
+        text = text,
         modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 12.dp),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -442,7 +421,7 @@ fun RespoolAmountScreen(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp),
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(24.dp),
         tonalElevation = 1.dp,
         color = MaterialTheme.colorScheme.surface
     ) {
@@ -452,123 +431,115 @@ fun RespoolAmountScreen(
     }
 }
 
-@Composable internal fun RowSetting(
+@Composable private fun ToggleRow(
     title: String,
-    subtitle: String? = null,
-    clickable: Boolean = false,
-    trailing: (@Composable () -> Unit)? = null,
-    onClick: () -> Unit = {}
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    enabled: Boolean = true
 ) {
-    val base = Modifier.fillMaxWidth()
-    val mod = if (clickable) base.clickable { onClick() } else base
     ListItem(
-        modifier = mod,
         headlineContent = { Text(title, style = MaterialTheme.typography.bodyLarge) },
-        supportingContent = {
-            if (subtitle != null) {
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        },
         trailingContent = {
-            when {
-                trailing != null -> trailing()
-                clickable -> Icon(Icons.Filled.ChevronRight, contentDescription = null)
+            Switch(
+                checked = checked,
+                onCheckedChange = onCheckedChange,
+                enabled = enabled
+            )
+        }
+    )
+    HorizontalDivider()
+}
+
+@Composable private fun NavigationRow(
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    ListItem(
+        modifier = Modifier.clickable { onClick() },
+        headlineContent = { Text(title, style = MaterialTheme.typography.bodyLarge) },
+        trailingContent = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (subtitle.isNotEmpty()) {
+                    Text(
+                        subtitle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.width(6.dp))
+                }
+                Icon(
+                    Icons.Filled.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                )
             }
         }
     )
-    Divider()
-}
-
-@Composable private fun ToggleRow(title: String, checked: Boolean, onChecked: (Boolean) -> Unit) {
-    RowSetting(title = title, trailing = {
-        Switch(checked = checked, onCheckedChange = onChecked)
-    })
-}
-
-@Composable private fun SliderRow(
-    title: String,
-    valueText: String,
-    value: Float,
-    valueRange: ClosedFloatingPointRange<Float>,
-    steps: Int,
-    onChange: (Float) -> Unit,
-    onFinish: () -> Unit
-) {
-    Column(Modifier.fillMaxWidth()) {
-        ListItem(
-            headlineContent = { Text(title, style = MaterialTheme.typography.bodyLarge) },
-            supportingContent = { Text(valueText, style = MaterialTheme.typography.bodySmall, color = Color.Gray) }
-        )
-        Slider(
-            value = value,
-            onValueChange = { onChange(it) },
-            onValueChangeFinished = onFinish,
-            valueRange = valueRange,
-            steps = steps,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
-        Divider()
-    }
+    HorizontalDivider()
 }
 
 @Composable private fun StepperRow(
     title: String,
-    valueText: String,
-    value: Float,
-    range: ClosedFloatingPointRange<Float>,
-    step: Float,
-    onChange: (Float) -> Unit,
-    onFinish: () -> Unit
+    currentLabel: String,
+    minusEnabled: Boolean = true,
+    plusEnabled: Boolean = true,
+    onMinus: () -> Unit,
+    onPlus: () -> Unit
 ) {
     ListItem(
         headlineContent = { Text(title, style = MaterialTheme.typography.bodyLarge) },
-        supportingContent = { Text(valueText, style = MaterialTheme.typography.bodySmall, color = Color.Gray) },
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                OutlinedButton(
-                    onClick = {
-                        val next = max(range.start, value - step)
-                        if (next != value) { onChange(next); onFinish() }
-                    },
-                    shape = CircleShape,
-                    contentPadding = PaddingValues(0.dp),
-                    modifier = Modifier.size(36.dp)
-                ) { Text("–") }
-                Spacer(Modifier.width(8.dp))
-                OutlinedButton(
-                    onClick = {
-                        val next = min(range.endInclusive, value + step)
-                        if (next != value) { onChange(next); onFinish() }
-                    },
-                    shape = CircleShape,
-                    contentPadding = PaddingValues(0.dp),
-                    modifier = Modifier.size(36.dp)
-                ) { Text("+") }
+                TextButton(onClick = onMinus, enabled = minusEnabled) { Text("–", style = MaterialTheme.typography.titleLarge) }
+                Text(currentLabel, style = MaterialTheme.typography.bodyMedium)
+                TextButton(onClick = onPlus, enabled = plusEnabled) { Text("+", style = MaterialTheme.typography.titleLarge) }
             }
         }
     )
-    Divider()
+    HorizontalDivider()
 }
 
-
-@Composable private fun PickerRow(
+@Composable private fun DropdownRow(
     title: String,
-    enabled: Boolean,
-    currentLabel: String,
-    onNext: () -> Unit,
-    onPrev: () -> Unit
+    options: List<String>,
+    selectedIndex: Int,
+    onSelected: (Int) -> Unit,
+    enabled: Boolean = true
 ) {
+    var expanded by remember { mutableStateOf(false) }
+
     ListItem(
+        modifier = if (enabled) Modifier.clickable { expanded = true } else Modifier,
         headlineContent = { Text(title, style = MaterialTheme.typography.bodyLarge) },
         trailingContent = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = onPrev, enabled = enabled) { Text("–") }
-                Text(currentLabel, color = if (enabled) LocalContentColor.current else Color.Gray)
-                TextButton(onClick = onNext, enabled = enabled) { Text("+") }
+            Box {
+                Text(
+                    text = options.getOrElse(selectedIndex) { "" },
+                    color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    options.forEachIndexed { index, option ->
+                        DropdownMenuItem(
+                            text = { Text(option) },
+                            onClick = {
+                                expanded = false
+                                onSelected(index)
+                            },
+                            trailingIcon = if (index == selectedIndex) {
+                                { Icon(Icons.Filled.Check, contentDescription = null) }
+                            } else null
+                        )
+                    }
+                }
             }
         }
     )
-    Divider()
+    HorizontalDivider()
 }
 
 @Composable private fun SegmentedRow(
@@ -580,22 +551,20 @@ fun RespoolAmountScreen(
     ListItem(
         headlineContent = { Text(title, style = MaterialTheme.typography.bodyLarge) },
         trailingContent = {
-            Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                options.forEachIndexed { idx, label ->
-                    FilterChip(
-                        selected = idx == selectedIndex,
-                        onClick = { onSelected(idx) },
-                        label = { Text(label) },
-                        modifier = Modifier.padding(start = 6.dp)
-                    )
+            SingleChoiceSegmentedButtonRow {
+                options.forEachIndexed { index, label ->
+                    SegmentedButton(
+                        selected = index == selectedIndex,
+                        onClick = { onSelected(index) },
+                        shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size)
+                    ) {
+                        Text(label, maxLines = 1)
+                    }
                 }
             }
         }
     )
-    Divider()
+    HorizontalDivider()
 }
 
 @Composable private fun SingleChoiceRow(
@@ -614,22 +583,5 @@ fun RespoolAmountScreen(
             }
         }
     )
-    Divider()
-}
-
-/* -------------------------------------------------------------------------- */
-/*                                   Utils                                    */
-/* -------------------------------------------------------------------------- */
-
-
-/* ---------------------------- Simple App Prefs ----------------------------- */
-
-private class AppPrefs(context: Context) {
-    private val sp = context.getSharedPreferences("lts_prefs", Context.MODE_PRIVATE)
-    var temperatureInFahrenheit: Boolean
-        get() = sp.getBoolean("temperatureInFahrenheit", false)
-        set(v) { sp.edit().putBoolean("temperatureInFahrenheit", v).apply() }
-    var notificationsEnabled: Boolean
-        get() = sp.getBoolean("notificationsEnabled", false)
-        set(v) { sp.edit().putBoolean("notificationsEnabled", v).apply() }
+    HorizontalDivider()
 }

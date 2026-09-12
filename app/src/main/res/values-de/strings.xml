@@ -114,4 +114,127 @@
     <string name="language_english">English</string>
     <string name="language_german">Deutsch</string>
     <string name="language_dialog_title">Sprache wählen</string>
+
+    <!-- Zusätzliche Pillen-Texte -->
+    <string name="pill_fan_not_supported">Nicht unterstützt</string>
+    <string name="pill_fan_on">An: %1$d %%</string>
+    <string name="pill_fan_off">Aus</string>
+    <string name="pill_chip_temp_c">Chip: %1$d °C</string>
+    <string name="pill_chip_temp_f">Chip: %1$d °F</string>
+
+    <!-- Variante -->
+    <string name="set_variant">Variante</string>
+    <string name="variant_title">Variante wählen</string>
+    <string name="variant_v4">Respooler V4</string>
+    <string name="variant_pro">Respooler Pro</string>
+    <string name="variant_footer_selection">Wähle die Variante deines Respoolers. Abhängig davon werden dir die verfügbaren Einstellungen angezeigt. Die Auswahl wird auf dem Board gespeichert und kann jederzeit in den Einstellungen geändert werden.</string>
+    <string name="variant_footer_settings">Wähle die Variante deines Respoolers. Abhängig davon werden dir die verfügbaren Einstellungen angezeigt. Die Auswahl wird auf dem Board gespeichert.</string>
+    <string name="action_save">Speichern</string>
+
+    <!-- Servo -->
+    <string name="set_section_servo">Servo</string>
+    <string name="set_calibrate_end_positions">Endpositionen kalibrieren</string>
+    <string name="servo_step_width">Schrittweite: %1$.2f mm</string>
+    <string name="servo_footer">Wähle aus, auf welcher Seite die Startposition der Filamentführung ist.</string>
+    <string name="servo_side_left">Linke Seite</string>
+    <string name="servo_side_right">Rechte Seite</string>
+    <string name="servo_angle_label">Winkel: %1$d°</string>
+    <string name="servo_calibration_footer">Stelle die Endanschläge links und rechts so ein, dass die Filamentführung gerade so die Seiten berührt.</string>
+    <string name="servo_calibration_disabled_hint">Die Kalibrierung ist nur verfügbar, wenn der Motor gestoppt und bereit ist.</string>
+
+    <!-- Laufende Benachrichtigung -->
+    <string name="set_ongoing_notification">Laufende Benachrichtigung</string>
+    <string name="set_footer_ongoing_notification">Zeige eine dauerhafte Benachrichtigung mit Live-Fortschritt während des Spulens im Hintergrund.</string>
+
+    <!-- Verbindung & Geräteauswahl -->
+    <string name="conn_select_device">Gerät auswählen</string>
+    <string name="conn_searching_devices">Suche nach Geräten…</string>
+    <string name="conn_no_devices">Keine Geräte gefunden</string>
+    <string name="conn_permission_needed">Bluetooth-Berechtigungen zum Verbinden erforderlich</string>
+    <string name="conn_permission_rationale">Bluetooth-Berechtigungen sind erforderlich, um nach dem Respooler zu suchen und sich zu verbinden.</string>
+    <string name="conn_grant_permission">Berechtigung erteilen</string>
+    <string name="conn_open_settings">Einstellungen öffnen</string>
+    <string name="conn_bluetooth_disabled">Bluetooth ist ausgeschaltet</string>
+    <string name="conn_enable_bluetooth">Bluetooth aktivieren</string>
+    <string name="conn_no_networks_found">Keine Netzwerke gefunden</string>
+
+    <!-- Über / OTA / Impressum -->
+    <string name="about_app_version">App Version: %1$s</string>
+    <string name="about_board_version">Board Version: %1$s</string>
+    <string name="about_board_update">Board Update</string>
+    <string name="about_updates_not_supported">Updates nicht unterstützt</string>
+    <string name="about_board_not_connected">Board nicht verbunden</string>
+    <string name="about_firmware_updating">Firmware wird aktualisiert...</string>
+    <string name="about_firmware_up_to_date">Firmware ist aktuell</string>
+    <string name="about_update_failed">Update fehlgeschlagen!</string>
+    <string name="about_update_available">Update verfügbar (%1$s → %2$s)</string>
+    <string name="about_btn_not_supported">Nicht unterstützt</string>
+    <string name="about_btn_no_wifi">Keine WLAN-Verbindung</string>
+    <string name="about_btn_update">Firmware aktualisieren</string>
+    <string name="about_instructions">Hinweise</string>
+    <string name="about_connection_settings">Verbindungseinstellungen</string>
+    <string name="about_legal_footer">© 2025, LTS Design, Heiligenbornstraße 23, 01219 Dresden, Deutschland, info@lts-design.com</string>
+    <string name="ota_alert_success_title">Update erfolgreich!</string>
+    <string name="ota_alert_success_message">Das OTA-Update war erfolgreich.</string>
+    <string name="ota_alert_failure_title">Update fehlgeschlagen!</string>
+    <string name="ota_alert_failure_message">Das OTA-Update ist fehlgeschlagen. Stelle sicher, dass das verbundene WLAN über eine funktionierende Internetverbindung verfügt.</string>
+    <string name="ota_alert_show_changes">Änderungen anzeigen</string>
+    <string name="common_ok">OK</string>
+    <string name="common_close">Schließen</string>
+
+    <!-- Changelog -->
+    <string name="changelog_title">Changelog</string>
+    <string name="changelog_loading">Changelog wird geladen…</string>
+    <string name="changelog_error_title">Konnte nicht geladen werden.</string>
+
+    <!-- Hinweise -->
+    <string name="instructions_title">Hinweise</string>
+    <string name="instr_connect_title">Verbindung herstellen</string>
+    <string name="instr_connect_desc">Achte darauf, dass das Respooler Board eingeschaltet ist und die aktuelle Firmware installiert wurde.</string>
+    <string name="instr_restart_connection">Verbindung erneut starten</string>
+    <string name="instr_firmware_title">Board Firmware</string>
+    <string name="instr_firmware_desc">Für OTA-Updates muss das Board mit dem lokalen WLAN verbunden sein. Alternativ dazu kann auch der Web Flasher auf der LTS Design Webseite genutzt werden.</string>
+    <string name="instr_motor_title">Motorstärke</string>
+    <string name="instr_motor_desc">Passe die Motorstärke an, wenn der Motor heiß wird oder vibriert. Auch ein schwaches Netzteil kann die Stärke beeinflussen.</string>
+    <string name="instr_autostop_title">Auto-Stopp</string>
+    <string name="instr_autostop_desc">Die Empfindlichkeit hängt vom Netzteil ab. Wenn der Motor zu oft stoppt, verringere die Empfindlichkeit in den Einstellungen.</string>
+    <string name="instr_github_title">GitHub</string>
+    <string name="instr_github_desc">Der Quellcode sowie alle weiteren Dateien sind Open Source und können auf GitHub heruntergeladen werden: https://github.com/LukasT03/LTS-Respooler</string>
+    <string name="instr_feedback_title">Feedback</string>
+    <string name="instr_feedback_desc">Sende bei Fragen, Problemen oder Anregungen gerne eine E-Mail an info@lts-design.com.</string>
+
+    <!-- Upgrade-Code -->
+    <string name="upgrade_code_title">Neues Control Board</string>
+    <string name="upgrade_no_updates_title">Keine Updates mehr</string>
+    <string name="upgrade_no_updates_desc">Da das V3 Control Board nur in begrenzter Stückzahl verkauft wurde und nicht alle Funktionen unterstützt, wird es dafür keine weiteren Firmware-Updates mehr geben.\n\nAlle momentan vorhandenen Funktionen bleiben bestehen.</string>
+    <string name="upgrade_discount_title">Rabatt Code</string>
+    <string name="upgrade_discount_desc">Wenn du kostenlos das neue Control Board V4 erhalten möchtest, kannst du den folgenden Code dafür im Store anwenden, sobald es verfügbar ist.</string>
+    <string name="upgrade_code_copied">Kopiert!</string>
+    <string name="upgrade_copy_code">Code kopieren</string>
+
+    <!-- Benachrichtigungen -->
+    <string name="notif_done_title">Respooler fertig!</string>
+    <string name="notif_done_body">Der Spulvorgang wurde erfolgreich fertiggestellt.</string>
+    <string name="notif_autostop_title">Fehler: Auto-Stopp!</string>
+    <string name="notif_autostop_body">Der Respooler hat automatisch angehalten. Überprüfe, ob der Motor blockiert ist.</string>
+    <string name="notif_action_start">Respooler starten</string>
+    <string name="notif_action_pause">Pause</string>
+    <string name="notif_action_stop">Stopp</string>
+    <string name="notif_channel_alerts">Respooler Benachrichtigungen</string>
+    <string name="notif_channel_progress">Respooler Live-Fortschritt</string>
+
+    <!-- Splash / Onboarding -->
+    <string name="splash_welcome">Willkommen bei LTS Control</string>
+    <string name="splash_feature_function_title">Funktion</string>
+    <string name="splash_feature_function_desc">Um das Respooler Board mit der App zu steuern, musst du es zuerst mit deinem Gerät verbinden.</string>
+    <string name="splash_feature_connect_title">Verbinden</string>
+    <string name="splash_feature_connect_desc">Stelle sicher, dass das Board eingeschaltet ist und starte die Kopplung über den Button unten.</string>
+    <string name="splash_connect_cta">Respooler verbinden</string>
+
+    <!-- Board-Typen -->
+    <string name="board_type_v3">Control Board V3</string>
+    <string name="board_type_v4">Control Board</string>
+    <string name="board_type_v4_pro">Control Board (Pro)</string>
+    <string name="board_type_db">Driver Board</string>
+    <string name="board_type_db_pro">Driver Board (Pro)</string>
 </resources>

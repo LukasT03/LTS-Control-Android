@@ -7,7 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.ViewModelProvider
 import com.lts.control.core.ble.BleViewModel
 import com.lts.control.ui.LtsControlApp
-import com.example.ltscontrol.ui.theme.LTSControlTheme
+import com.lts.control.ui.theme.LTSControlTheme
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

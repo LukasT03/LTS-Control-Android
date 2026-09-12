@@ -3,69 +3,76 @@ package com.lts.control.core.ble
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.lts.control.core.ble.model.DeviceState
-import com.lts.control.core.ble.model.StatusPayload
+import com.lts.control.core.ble.model.BoardVariant
+import com.lts.control.core.ble.model.DiscoveredDevice
+import com.lts.control.core.repository.DeviceRepository
+import com.lts.control.core.state.DeviceStatus
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import com.lts.control.core.ble.model.IncomingMessage
 
 class BleViewModel(app: Application) : AndroidViewModel(app) {
-    private val mgr = BleManager(app)
+    val repo = DeviceRepository.getInstance(app)
 
-    val connection: StateFlow<BleManager.ConnectionState> = mgr.connectionState
-    val status: StateFlow<StatusPayload?> = mgr.status
-    val messages: SharedFlow<IncomingMessage> = mgr.messages
-    val progressBarValue: StateFlow<Float> = mgr.status
-        .map { s ->
-            val p = s?.progressPercent ?: 0f
-            val state = s?.deviceState ?: DeviceState.IDLE
-            // UX-Regel aus deiner iOS-Logik: bei IDLE immer 0 %
-            if (state == DeviceState.IDLE) 0f else p.coerceIn(0f, 100f)
-        }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, 0f)
+    val status: StateFlow<DeviceStatus> = repo.status
+    val isConnected: StateFlow<Boolean> = repo.isConnected
+    val connectionState: StateFlow<BleManager.ConnectionState> = repo.bleManager.connectionState
+    val discoveredDevices: StateFlow<List<DiscoveredDevice>> = repo.bleManager.discoveredDevices
 
-    val remainingSeconds: StateFlow<Int> = mgr.status
-        .map { it?.remainingSeconds ?: 0 }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+    val availableSsids: StateFlow<List<String>> = repo.availableSsids
+    val isScanningSsids: StateFlow<Boolean> = repo.isScanningSsids
+    val isConnectingWifi: StateFlow<Boolean> = repo.isConnectingWifi
+    val wifiConnectSuccess = repo.wifiConnectSuccess
 
-    val deviceState: StateFlow<DeviceState> = mgr.status
-        .map { it?.deviceState ?: DeviceState.IDLE }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, DeviceState.IDLE)
-
-    val highSpeed: StateFlow<Boolean> = mgr.status
-        .map { it?.highSpeed ?: false }
+    val hasCompletedSetup: StateFlow<Boolean> = repo.preferencesRepo.hasCompletedSetupFlow
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val lastDeviceAddress: StateFlow<String?> = repo.preferencesRepo.lastDeviceAddressFlow
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    // API
-    fun startScan() = mgr.startScan()
-    fun stopScan() = mgr.stopScan()
-    fun disconnect() = mgr.disconnect()
+    // Motor commands
+    fun start() = repo.start()
+    fun stop() = repo.stop()
+    fun pause() = repo.pause()
+    fun ota() = repo.ota()
+    fun clearOtaSuccess() = repo.clearOtaSuccess()
 
-    fun start() = mgr.start()
-    fun stop() = mgr.stop()
-    fun pause() = mgr.pause()
-    fun ota() = mgr.ota()
-    fun wifiScan() = mgr.wifiScan()
-    fun wifiConnect(ssid: String, pass: String) = mgr.wifiConnect(ssid, pass)
+    // Scan & Connect
+    fun startScan() = repo.bleManager.startScan()
+    fun stopScan() = repo.bleManager.stopScan()
+    fun connectDevice(d: DiscoveredDevice) = repo.connectDevice(d)
+    fun disconnect() = repo.disconnect()
+    fun removeSavedDevice() = repo.removeSavedDevice()
 
-    fun setSpeed(p: Int) = mgr.setSpeedPercent(p)
-    fun setTargetWeight(m: Int) = mgr.setTargetWeight(m)
-    fun setTorque(l: Int) = mgr.setTorque(l)
-    fun setDirection(d: Int) = mgr.setDirection(d)
-    fun setLed(b: Int) = mgr.setLed(b)
-    fun setFilamentSensor(on: Boolean) = mgr.setFilamentSensor(on)
-    fun setMotorStrength(p: Int) = mgr.setMotorStrength(p)
-    fun setJingle(j: Int) = mgr.setJingle(j)
-    fun setDurationAt80(sec: Int) = mgr.setDurationAt80(sec)
-    fun setHighSpeed(on: Boolean) = mgr.setHighSpeed(on)
-    fun setFanSpeed(p: Int) = mgr.setFanSpeed(p)
-    fun setFanAlways(on: Boolean) = mgr.setFanAlwaysOn(on)
+    // Wi-Fi
+    fun triggerWifiScan() = repo.triggerWifiScan()
+    fun sendWifiCredentialsAndConnect(ssid: String, pass: String) = repo.sendWifiCredentialsAndConnect(ssid, pass)
 
-    override fun onCleared() {
-        super.onCleared()
-        mgr.clear()
-    }
+    // Settings
+    fun setSpeed(p: Int) = repo.setSpeedPercent(p)
+    fun setJingle(style: Int) = repo.setJingleStyle(style)
+    fun setLed(brightness: Int) = repo.setLedBrightness(brightness)
+    fun setFanSpeed(speed: Int) = repo.setFanSpeed(speed)
+    fun setFanAlways(always: Boolean) = repo.setFanAlwaysOn(always)
+    fun setFilamentSensor(use: Boolean) = repo.setUseFilamentSensor(use)
+    fun setDirectionReversed(reversed: Boolean) = repo.setDirectionReversed(reversed)
+    fun setMotorStrength(strength: Int) = repo.setMotorStrength(strength)
+    fun setTorque(level: Int) = repo.setTorqueLimit(level)
+    fun setHighSpeed(enabled: Boolean) = repo.setHighSpeed(enabled)
+    fun setDurationAt80(seconds: Int) = repo.setDurationAt80(seconds)
+    fun setTargetWeight(weight: Int) = repo.setTargetWeight(weight)
+
+    // Board Variant
+    fun setBoardVariant(variant: BoardVariant) = repo.setBoardVariant(variant)
+
+    // Servo (Pro only)
+    fun setServoAngleR(angle: Int) = repo.setServoAngleR(angle)
+    fun setServoAngleL(angle: Int) = repo.setServoAngleL(angle)
+    fun setServoStepMm(step: Double) = repo.setServoStepMm(step)
+    fun setServoHome(side: String) = repo.setServoHome(side)
+    fun servoGoto(target: String) = repo.servoGoto(target)
+
+    // App Preferences
+    fun setTemperatureInFahrenheit(isFahrenheit: Boolean) = repo.setTemperatureInFahrenheit(isFahrenheit)
+    fun setNotificationsEnabled(enabled: Boolean) = repo.setNotificationsEnabled(enabled)
+    fun setOngoingNotificationEnabled(enabled: Boolean) = repo.setOngoingNotificationEnabled(enabled)
 }

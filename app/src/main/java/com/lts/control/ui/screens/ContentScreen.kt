@@ -1,112 +1,80 @@
 package com.lts.control.ui.screens
 
-import androidx.compose.foundation.Image
-import androidx.compose.ui.res.painterResource
-
-import com.lts.control.R
-import androidx.compose.ui.res.stringResource
-
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.*
-import androidx.compose.ui.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.*
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.vector.path
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.*
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.lts.control.R
 import com.lts.control.core.ble.BleViewModel
 import com.lts.control.core.ble.model.DeviceState
 import com.lts.control.core.ble.model.homeLabelRes
-import kotlinx.coroutines.flow.collectLatest
-import kotlin.math.abs
-import kotlin.math.max
+import com.lts.control.core.state.DeviceStatus
+import com.lts.control.ui.theme.*
+import java.util.Locale
 import kotlin.math.min
+import kotlin.math.roundToInt
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun ContentScreen(
     vm: BleViewModel,
     onDismissSplashIfConnected: () -> Unit = {}
 ) {
-    val connection by vm.connection.collectAsState()
     val status by vm.status.collectAsState()
-    val deviceState by vm.deviceState.collectAsState()
-    val progress by vm.progressBarValue.collectAsState()
-    val remaining by vm.remainingSeconds.collectAsState()
+    val isConnected by vm.isConnected.collectAsState()
 
-    // iOS-Logik: wenn verbunden -> Splash schließen
-    val isConnected = remember(status) { status != null }
-    LaunchedEffect(isConnected) { if (isConnected) onDismissSplashIfConnected() }
-
-    // Lokaler Slider-State (nur bei Drag, danach persistieren)
-    var localSpeed by remember { mutableFloatStateOf(max(50f, (status?.speedPercent ?: 80).toFloat())) }
-    var isEditing by remember { mutableStateOf(false) }
-    LaunchedEffect(status?.speedPercent) {
-        if (!isEditing) localSpeed = max(50f, (status?.speedPercent ?: 80).toFloat())
+    LaunchedEffect(isConnected) {
+        if (isConnected) onDismissSplashIfConnected()
     }
 
-    // Farben wie in Swift
+    val deviceState = status.deviceState
     val isPaused = deviceState == DeviceState.PAUSED
     val isDone = deviceState == DeviceState.DONE
-    val isError = deviceState == DeviceState.AUTO_STOP // Rot für Auto-Stop
+    val isError = deviceState == DeviceState.AUTO_STOP
+
     val barColor = when {
         isError -> MaterialTheme.colorScheme.error
-        isDone  -> Color(0xFF2ECC71)
-        isPaused-> Color(0xFFFFA000)
-        else    -> Color(0xFF0C4C98)      // ltsBlue (light)
+        isDone -> StateDoneGreen
+        isPaused -> StatePausedOrange
+        else -> MaterialTheme.colorScheme.primary
     }
     val barBgColor = when {
         isError -> MaterialTheme.colorScheme.error.copy(alpha = 0.20f)
-        isPaused-> Color(0xFFFFA000).copy(alpha = 0.20f)
-        else    -> Color.Gray.copy(alpha = 0.14f)
-    }
-
-    // Light blue for screen background
-    val screenLightBlue = Color(0xFFF4F9FF)
-
-    // Temperatur-Anzeige wie in Swift (>=65°C kritisch)
-    val tempC = status?.chipTemperatureC
-    val tempCritical = (tempC ?: 0) >= 65
-    val tempIconColor = when {
-        tempC == null -> LocalContentColor.current
-        tempCritical  -> Color(0xFFD32F2F)
-        else          -> Color(0xFF2E7D32)
+        isPaused -> StatePausedOrange.copy(alpha = 0.20f)
+        else -> Color.Gray.copy(alpha = 0.14f)
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colorStops = arrayOf(
-                        0.0f to screenLightBlue,
-                        0.8f to screenLightBlue,
-                        1.0f to Color.White
-                    )
-                )
-            )
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(
             modifier = Modifier
@@ -115,10 +83,8 @@ fun ContentScreen(
         ) {
             // Pills (TOP, fixed)
             PillRow(
-                isConnected = isConnected,
-                hasFilament = (status?.hasFilament == true) && isConnected,
-                tempLabel = tempC?.let { stringResource(R.string.temp_celsius, it) } ?: stringResource(R.string.temp_unknown),
-                tempIconTint = tempIconColor,
+                status = status,
+                isConnected = isConnected
             )
 
             // Spool (MIDDLE, flexible – fills available space)
@@ -130,89 +96,7 @@ fun ContentScreen(
                     .padding(top = 8.dp),
                 contentAlignment = Alignment.Center
             ) {
-                // --- Interactive rotation state (drag + physics + auto) ---
-                var rotation by remember { mutableFloatStateOf(0f) }
-                var angularVel by remember { mutableStateOf(0f) }
-                var isDragging by remember { mutableStateOf(false) }
-                var lastAngle by remember { mutableStateOf<Float?>(null) }
-                var boxSize by remember { mutableStateOf(IntSize.Zero) }
-
-                // Physics loop: inertia when released; auto-rotate when device runs
-                LaunchedEffect(deviceState) {
-                    val maxVel = 15f
-                    val friction = 0.992f
-                    var last = withFrameNanos { it }
-                    while (true) {
-                        val now = withFrameNanos { it }
-                        val dt = (now - last) / 1_000_000_000f
-                        last = now
-
-                        val autoVel = when (deviceState) {
-                            DeviceState.RUNNING -> maxVel
-                            DeviceState.UPDATING -> 5f
-                            else -> 0f
-                        }
-
-                        // If user is dragging, keep current angularVel (set by gestures)
-                        angularVel = when {
-                            isDragging -> angularVel
-                            kotlin.math.abs(angularVel) > 0.01f -> angularVel * friction
-                            else -> autoVel
-                        }
-
-                        val clamped = angularVel.coerceIn(-maxVel, maxVel)
-                        rotation = (rotation + clamped * dt * 60f) % 360f
-                    }
-                }
-
-                // Gesture: one-finger drag to spin (angle around center)
-                val center by remember(boxSize) {
-                    mutableStateOf(Offset(boxSize.width / 2f, boxSize.height / 2f))
-                }
-                fun angleAt(p: Offset): Float = Math.toDegrees(kotlin.math.atan2(
-                    (p.y - center.y).toDouble(),
-                    (p.x - center.x).toDouble()
-                )).toFloat()
-                val deadZoneRadiusPx = remember(boxSize) { (min(boxSize.width, boxSize.height) * 0.25f) }
-
-                TimelapseDisc(
-                    rotation = rotation,
-                    modifier = Modifier
-                        .onSizeChanged { boxSize = it }
-                        .pointerInput(Unit) {
-                            detectDragGestures(
-                                onDragStart = { pos ->
-                                    val d = (pos - center).getDistance()
-                                    if (d < deadZoneRadiusPx) {
-                                        // ignore drags starting in the hub
-                                        return@detectDragGestures
-                                    }
-                                    isDragging = true
-                                    lastAngle = angleAt(pos)
-                                    angularVel = 0f
-                                },
-                                onDragEnd = {
-                                    isDragging = false
-                                    lastAngle = null
-                                },
-                                onDragCancel = {
-                                    isDragging = false
-                                    lastAngle = null
-                                }
-                            ) { change, _ ->
-                                val a = angleAt(change.position)
-                                lastAngle?.let { prev ->
-                                    var delta = a - prev
-                                    if (delta > 180f) delta -= 360f
-                                    if (delta < -180f) delta += 360f
-                                    rotation = (rotation + delta) % 360f
-                                    angularVel = delta * 6f // scale for inertia feel
-                                }
-                                lastAngle = a
-                                change.consume()
-                            }
-                        }
-                )
+                InteractiveSpool(deviceState = deviceState)
             }
 
             // Status & Controls (BOTTOM, fixed)
@@ -220,65 +104,260 @@ fun ContentScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 14.dp)
-                    .padding(bottom = 0.dp)
+                    .padding(bottom = 8.dp)
             ) {
-                Column(Modifier.padding(horizontal = 34.dp)) {
-                    val progressValue = if (deviceState == DeviceState.IDLE) 0f else progress.coerceIn(0f, 100f)
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        AnimatedContent(
-                            targetState = deviceState to remaining,
-                            transitionSpec = { fadeIn(tween(180)) with fadeOut(tween(180)) }
-                        ) { (state, rem) ->
-                            Text(
-                                text = stringResource(state.homeLabelRes()),
-                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 17.sp).copy(color = Color.Gray),
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                        Spacer(Modifier.height(10.dp))
-                        StatusProgress(
-                            fraction = progressValue / 100f,
-                            bar = barColor,
-                            track = barBgColor
-                        )
-                    }
+                Column(Modifier.padding(horizontal = 24.dp)) {
+                    val progressValue = if (deviceState == DeviceState.IDLE) 0f else status.progress.coerceIn(0f, 100f)
+
+                    // Three-column status row above progress bar
+                    StatusHeaderRow(
+                        deviceState = deviceState,
+                        progress = status.progress,
+                        remainingSeconds = status.remainingTime
+                    )
+
+                    Spacer(Modifier.height(10.dp))
+
+                    StatusProgress(
+                        fraction = progressValue / 100f,
+                        bar = barColor,
+                        track = barBgColor
+                    )
                 }
 
                 Spacer(Modifier.height(16.dp))
+
+                val isStartEnabled = !((status.useFilamentSensor && !status.hasFilament) || !isConnected || deviceState == DeviceState.UPDATING)
+                val isStopEnabled = isConnected && deviceState != DeviceState.UPDATING
+
                 ControlCard(
-                    speed = localSpeed,
-                    onSpeedChange = {
-                        isEditing = true
-                        localSpeed = it
-                    },
-                    onSpeedChangeFinished = {
-                        isEditing = false
-                        vm.setSpeed(localSpeed.toInt())
-                    },
+                    speed = status.speedPercent.toFloat(),
+                    onSpeedChange = { vm.setSpeed(it.toInt()) },
                     isRunning = (deviceState == DeviceState.RUNNING),
-                    onStartOrPause = { if (deviceState == DeviceState.RUNNING) vm.pause() else vm.start() },
-                    onStop = { vm.stop() },
+                    isStartEnabled = isStartEnabled,
+                    isStopEnabled = isStopEnabled,
+                    onStartOrPause = {
+                        if (deviceState == DeviceState.RUNNING) vm.pause() else vm.start()
+                    },
+                    onStop = { vm.stop() }
                 )
             }
         }
     }
 }
 
-/* -------------------------------------------------------------------------- */
-/*                              Helper UI Pieces                              */
-/* -------------------------------------------------------------------------- */
+@Composable
+private fun StatusHeaderRow(
+    deviceState: DeviceState,
+    progress: Float,
+    remainingSeconds: Int?
+) {
+    val leftText = when (deviceState) {
+        DeviceState.AUTO_STOP -> stringResource(R.string.home_state_error)
+        DeviceState.RUNNING, DeviceState.PAUSED -> stringResource(R.string.percent_value, progress.toInt())
+        else -> ""
+    }
+    val leftColor = if (deviceState == DeviceState.AUTO_STOP) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+
+    val showTime = (deviceState == DeviceState.RUNNING || deviceState == DeviceState.AUTO_STOP || deviceState == DeviceState.PAUSED)
+    val rightText = if (showTime && remainingSeconds != null) {
+        val t = maxOf(0, remainingSeconds)
+        String.format(Locale.US, "-%02d:%02d", t / 60, t % 60)
+    } else ""
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(modifier = Modifier.width(70.dp), contentAlignment = Alignment.CenterStart) {
+            Text(
+                text = leftText,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = leftColor,
+                maxLines = 1
+            )
+        }
+
+        AnimatedContent(
+            targetState = deviceState,
+            transitionSpec = { fadeIn(tween(180)) togetherWith fadeOut(tween(180)) },
+            modifier = Modifier.weight(1f),
+            label = "state-label"
+        ) { state ->
+            Text(
+                text = stringResource(state.homeLabelRes()),
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = 17.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+                maxLines = 1
+            )
+        }
+
+        Box(modifier = Modifier.width(70.dp), contentAlignment = Alignment.CenterEnd) {
+            Text(
+                text = rightText,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+@Composable
+private fun InteractiveSpool(deviceState: DeviceState) {
+    var rotation by remember { mutableFloatStateOf(0f) }
+    var angularVel by remember { mutableFloatStateOf(0f) }
+    var isDragging by remember { mutableStateOf(false) }
+    var lastAngle by remember { mutableStateOf<Float?>(null) }
+    var boxSize by remember { mutableStateOf(IntSize.Zero) }
+
+    // Physics constants matching iOS: maxVel = 5, accel = 0.01, decel = 0.05, friction = 0.98
+    LaunchedEffect(deviceState) {
+        val maxVel = 5f
+        val accel = 0.01f
+        val decel = 0.05f
+        val friction = 0.98f
+        var lastNanos = withFrameNanos { it }
+
+        while (true) {
+            val nowNanos = withFrameNanos { it }
+            val dt = (nowNanos - lastNanos) / 1_000_000_000f
+            lastNanos = nowNanos
+
+            val targetVel = when (deviceState) {
+                DeviceState.RUNNING -> maxVel
+                DeviceState.UPDATING -> 2f
+                else -> 0f
+            }
+
+            if (!isDragging) {
+                val smoothing = if (targetVel > angularVel) accel else decel
+                angularVel += (targetVel - angularVel) * smoothing
+                angularVel *= friction
+                val clamped = angularVel.coerceIn(-15f, 15f)
+                rotation = (rotation + clamped * dt * 60f) % 360f
+            }
+        }
+    }
+
+    val center by remember(boxSize) {
+        mutableStateOf(Offset(boxSize.width / 2f, boxSize.height / 2f))
+    }
+    fun angleAt(p: Offset): Float = Math.toDegrees(
+        kotlin.math.atan2((p.y - center.y).toDouble(), (p.x - center.x).toDouble())
+    ).toFloat()
+
+    val deadZoneRadiusPx = remember(boxSize) { min(boxSize.width, boxSize.height) * 0.25f }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize(0.75f)
+            .aspectRatio(1f)
+            .onSizeChanged { boxSize = it }
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDragStart = { pos ->
+                        val d = (pos - center).getDistance()
+                        if (d >= deadZoneRadiusPx) {
+                            isDragging = true
+                            lastAngle = angleAt(pos)
+                            angularVel = 0f
+                        }
+                    },
+                    onDragEnd = {
+                        isDragging = false
+                        lastAngle = null
+                    },
+                    onDragCancel = {
+                        isDragging = false
+                        lastAngle = null
+                    }
+                ) { change, _ ->
+                    val a = angleAt(change.position)
+                    lastAngle?.let { prev ->
+                        var delta = a - prev
+                        if (delta > 180f) delta -= 360f
+                        if (delta < -180f) delta += 360f
+                        rotation = (rotation + delta) % 360f
+                        angularVel = delta * 3f
+                    }
+                    lastAngle = a
+                    change.consume()
+                }
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .rotate(rotation),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.bambu_spool),
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape)
+            )
+            // Center cutout hub hole matching iOS diameter = size / 3.55
+            Box(
+                modifier = Modifier
+                    .fillMaxSize(1f / 3.55f)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.background)
+            )
+        }
+    }
+}
 
 @Composable
 private fun PillRow(
-    isConnected: Boolean,
-    hasFilament: Boolean,
-    tempLabel: String,
-    tempIconTint: Color
+    status: DeviceStatus,
+    isConnected: Boolean
 ) {
+    val isV3 = status.boardVersion?.contains("CtrBoard V3") == true
+    val tempC = status.chipTemperature
+    val isFahrenheit = status.temperatureInFahrenheit
+
+    val tempLabel = when {
+        tempC == null -> stringResource(R.string.value_none)
+        isFahrenheit -> {
+            val f = (tempC * 9 / 5.0 + 32).roundToInt()
+            stringResource(R.string.pill_chip_temp_f, f)
+        }
+        else -> stringResource(R.string.pill_chip_temp_c, tempC)
+    }
+
+    val tempIconTint = when {
+        tempC == null -> MaterialTheme.colorScheme.onSurfaceVariant
+        tempC >= 65 -> StateCriticalRed
+        else -> StateNormalGreen
+    }
+
+    val fanOn = isConnected && status.isFanOn
+    val fanSubtitle = when {
+        isV3 -> stringResource(R.string.pill_fan_not_supported)
+        fanOn -> stringResource(R.string.pill_fan_on, status.fanSpeed)
+        else -> stringResource(R.string.pill_fan_off)
+    }
+    val fanIconTint = when {
+        isV3 -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+        fanOn -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -287,29 +366,29 @@ private fun PillRow(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            // Verbindung (links oben)
+            // Connection
             Pill(
                 leading = {
-                    val icon = if (isConnected) Symbols.Antenna else Symbols.AntennaSlash
                     Icon(
-                        icon,
+                        imageVector = if (isConnected) Icons.Rounded.SettingsInputAntenna else Icons.Rounded.PortableWifiOff,
                         contentDescription = null,
-                        tint = if (isConnected) Color(0xFF00BCD4) else LocalContentColor.current,
-                        modifier = Modifier.size(22.dp)
+                        tint = if (isConnected) Color(0xFF00BCD4) else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp)
                     )
                 },
                 title = stringResource(R.string.pill_connection),
                 subtitle = if (isConnected) stringResource(R.string.common_connected) else stringResource(R.string.common_disconnected),
                 modifier = Modifier.weight(1f)
             )
-            // Temperatur (rechts oben)
+
+            // Temperature
             Pill(
                 leading = {
                     Icon(
-                        if (tempIconTint == Color(0xFFD32F2F)) Symbols.ThermoHigh else Symbols.Thermo,
+                        imageVector = Icons.Rounded.DeviceThermostat,
                         contentDescription = null,
                         tint = tempIconTint,
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier.size(24.dp)
                     )
                 },
                 title = stringResource(R.string.pill_temperature),
@@ -317,29 +396,37 @@ private fun PillRow(
                 modifier = Modifier.weight(1f)
             )
         }
+
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            // Filament (links unten)
+            // Filament
+            val hasFil = status.hasFilament && isConnected
             Pill(
                 leading = {
-                    val ok = hasFilament
                     Icon(
-                        if (ok) Symbols.CheckCircle else Symbols.XCircle,
+                        imageVector = if (hasFil) Icons.Rounded.CheckCircle else Icons.Rounded.Cancel,
                         contentDescription = null,
-                        tint = if (ok) MaterialTheme.colorScheme.primary else LocalContentColor.current,
-                        modifier = Modifier.size(23.5.dp)
+                        tint = if (hasFil) StateNormalGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp)
                     )
                 },
                 title = stringResource(R.string.pill_filament),
-                subtitle = if (hasFilament) stringResource(R.string.filament_detected) else stringResource(R.string.filament_not_detected),
+                subtitle = if (hasFil) stringResource(R.string.filament_detected) else stringResource(R.string.filament_not_detected),
                 modifier = Modifier.weight(1f)
             )
-            // Lüfter (rechts unten)
+
+            // Fan
             Pill(
                 leading = {
-                    Icon(Symbols.Fan, contentDescription = null, tint = LocalContentColor.current, modifier = Modifier.size(22.dp))
+                    Icon(
+                        imageVector = if (isV3) Icons.Rounded.AirplanemodeInactive else Icons.Rounded.Air,
+                        contentDescription = null,
+                        tint = fanIconTint,
+                        modifier = Modifier.size(24.dp)
+                    )
                 },
                 title = stringResource(R.string.pill_fan),
-                subtitle = stringResource(R.string.value_none),
+                subtitle = fanSubtitle,
+                isTitleDimmed = isV3,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -351,41 +438,34 @@ private fun Pill(
     leading: @Composable () -> Unit,
     title: String,
     subtitle: String,
+    isTitleDimmed: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Row(
         modifier
             .height(50.dp)
             .clip(RoundedCornerShape(50))
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.surface)
             .padding(start = 12.dp, end = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(Modifier.size(28.dp), contentAlignment = Alignment.Center) { leading() }
         Spacer(Modifier.width(6.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(subtitle, style = MaterialTheme.typography.bodyMedium.copy(color = Color.Gray), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = if (isTitleDimmed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
-    }
-}
-
-@Composable
-private fun TimelapseDisc(rotation: Float, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .fillMaxSize(0.7f)
-            .aspectRatio(1f)
-            .rotate(rotation),
-        contentAlignment = Alignment.Center
-    ) {
-        Image(
-            painter = painterResource(id = R.drawable.bambu_spool),
-            contentDescription = null,
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(CircleShape)
-        )
     }
 }
 
@@ -396,7 +476,11 @@ private fun StatusProgress(
     track: Color
 ) {
     val f = fraction.coerceIn(0f, 1f)
-    val anim by animateFloatAsState(targetValue = f, animationSpec = tween(350, easing = FastOutSlowInEasing), label = "progress")
+    val anim by animateFloatAsState(
+        targetValue = f,
+        animationSpec = tween(350, easing = FastOutSlowInEasing),
+        label = "progress"
+    )
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -417,25 +501,24 @@ private fun StatusProgress(
 private fun ControlCard(
     speed: Float,
     onSpeedChange: (Float) -> Unit,
-    onSpeedChangeFinished: () -> Unit,
     isRunning: Boolean,
+    isStartEnabled: Boolean,
+    isStopEnabled: Boolean,
     onStartOrPause: () -> Unit,
     onStop: () -> Unit
 ) {
-    val controlBg = Color.White
     Card(
-        modifier = Modifier
-            .fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(
             topStart = 34.dp,
             topEnd = 34.dp,
             bottomStart = 0.dp,
             bottomEnd = 0.dp
         ),
-        colors = CardDefaults.cardColors(containerColor = controlBg)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(
-            Modifier.padding(start = 12.dp, top = 12.dp, end = 12.dp, bottom = 0.dp)
+            Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 12.dp)
         ) {
             Row(
                 Modifier.fillMaxWidth(),
@@ -444,48 +527,56 @@ private fun ControlCard(
                 PillButton(
                     text = if (isRunning) stringResource(R.string.action_pause) else stringResource(R.string.action_start),
                     onClick = onStartOrPause,
+                    enabled = isStartEnabled,
                     modifier = Modifier.weight(1f)
                 )
                 PillButton(
                     text = stringResource(R.string.action_stop),
                     onClick = onStop,
-                    modifier = Modifier.weight(1f),
-                    danger = true
+                    enabled = isStopEnabled,
+                    danger = true,
+                    modifier = Modifier.weight(1f)
                 )
             }
-            Divider(Modifier.padding(vertical = 12.dp))
+
+            HorizontalDivider(Modifier.padding(vertical = 12.dp))
+
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
                 ) {
                     Slider(
                         value = speed.coerceIn(50f, 100f),
                         onValueChange = { onSpeedChange(it) },
                         valueRange = 50f..100f,
-                        onValueChangeFinished = onSpeedChangeFinished,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(38.dp),
                         colors = SliderDefaults.colors(
                             activeTrackColor = MaterialTheme.colorScheme.primary,
-                            inactiveTrackColor = Color.Gray.copy(alpha = 0.14f),
+                            inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
                             thumbColor = MaterialTheme.colorScheme.primary
                         )
                     )
                 }
                 Spacer(Modifier.width(8.dp))
                 Box(
-                    modifier = Modifier.width(50.dp),
+                    modifier = Modifier.width(54.dp),
                     contentAlignment = Alignment.CenterEnd
                 ) {
                     Text(
                         text = stringResource(R.string.percent_value, speed.toInt()),
-                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 17.sp).copy(color = Color.Gray)
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 17.sp,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     )
                 }
             }
-            Spacer(Modifier.height(10.dp))
         }
     }
 }
@@ -495,104 +586,33 @@ private fun PillButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
     danger: Boolean = false
 ) {
-    val base = if (danger) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-    val pressed = remember { mutableStateOf(false) }
-    val bg by animateColorAsState(
-        targetValue = if (pressed.value) base.copy(alpha = 0.15f) else base.copy(alpha = 0.12f),
-        animationSpec = tween(120), label = "btn-bg"
-    )
+    val baseColor = if (danger) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+    val contentColor = if (enabled) baseColor else baseColor.copy(alpha = 0.4f)
+    val bgColor = if (enabled) baseColor.copy(alpha = 0.12f) else baseColor.copy(alpha = 0.05f)
+
     Box(
         modifier = modifier
-            .height(44.dp)
+            .height(48.dp)
             .clip(CircleShape)
-            .background(bg)
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = {
-                        pressed.value = true
-                        tryAwaitRelease()
-                        pressed.value = false
-                        onClick()
-                    }
-                )
-            },
+            .background(bgColor)
+            .then(
+                if (enabled) {
+                    Modifier.clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = ripple(color = baseColor),
+                        onClick = onClick
+                    )
+                } else Modifier
+            ),
         contentAlignment = Alignment.Center
     ) {
-        Text(text, color = base, style = MaterialTheme.typography.titleMedium)
+        Text(
+            text = text,
+            color = contentColor,
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+        )
     }
-}
-
-/* -------------------------------------------------------------------------- */
-/*                                 Utilities                                  */
-/* -------------------------------------------------------------------------- */
-
-
-@Composable
-private fun rememberSmoothRotation(targetRpm: Float): State<Float> {
-    // Physikalisch anmutende Glättung ähnlich deiner iOS-Timeline-Animation.  [oai_citation:0‡ContentView.rtf](sediment://file_000000005be861f5bdf817be07036721)
-    val rotation = remember { mutableFloatStateOf(0f) }
-    var angularVel by remember { mutableStateOf(0f) }
-
-    LaunchedEffect(targetRpm) {
-        val maxVel = 15f
-        val accel = 0.12f
-        val decel = 0.18f
-        val friction = 0.995f
-        var last = withFrameNanos { it }
-        while (true) {
-            val now = withFrameNanos { it }
-            val dt = (now - last) / 1_000_000_000f
-            last = now
-
-            val targetVel = if (targetRpm <= 0f) 0f else maxVel
-            val smoothing = if (targetVel > angularVel) accel else decel
-            angularVel += (targetVel - angularVel) * smoothing
-            angularVel *= friction
-
-            val clamped = angularVel.coerceIn(-maxVel, maxVel)
-            rotation.floatValue = (rotation.floatValue + clamped * dt * 60f) % 360f
-        }
-    }
-    return rotation
-}
-
-/* Simple Symbol Aliases (Material Icons ersetzbar) */
-private object Symbols {
-    val Antenna = Icons.DefaultSignal
-    val AntennaSlash = Icons.DefaultSignalSlash
-    val CheckCircle = Icons.DefaultCheck
-    val XCircle = Icons.DefaultX
-    val Thermo = Icons.DefaultThermo
-    val ThermoHigh = Icons.DefaultThermoHigh
-    val Fan = Icons.DefaultFan
-}
-
-/** Dummy vector icons – ersetze durch deine bevorzugte Icon-Lib (z.B. phosphor, lucide, material). */
-private object Icons {
-    val DefaultSignal: ImageVector
-        get() = materialPathIcon { moveTo(0f,0f); lineTo(0f,0f) } // placeholder
-    val DefaultSignalSlash: ImageVector
-        get() = materialPathIcon { moveTo(0f,0f); lineTo(0f,0f) }
-    val DefaultCheck: ImageVector
-        get() = materialPathIcon { moveTo(0f,0f); lineTo(0f,0f) }
-    val DefaultX: ImageVector
-        get() = materialPathIcon { moveTo(0f,0f); lineTo(0f,0f) }
-    val DefaultThermo: ImageVector
-        get() = materialPathIcon { moveTo(0f,0f); lineTo(0f,0f) }
-    val DefaultThermoHigh: ImageVector
-        get() = materialPathIcon { moveTo(0f,0f); lineTo(0f,0f) }
-    val DefaultFan: ImageVector
-        get() = materialPathIcon { moveTo(0f,0f); lineTo(0f,0f) }
-}
-
-private fun materialPathIcon(builder: androidx.compose.ui.graphics.vector.PathBuilder.() -> Unit): ImageVector {
-    return ImageVector.Builder(
-        defaultWidth = 24.dp, defaultHeight = 24.dp,
-        viewportWidth = 24f, viewportHeight = 24f
-    ).apply {
-        // Minimaler, gültiger leerer Pfad – erzeugt ein neutrales Platzhalter-Icon
-        path { moveTo(0f, 0f) }
-    }.build()
 }
