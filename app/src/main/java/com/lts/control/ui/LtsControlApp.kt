@@ -13,10 +13,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import com.lts.control.core.ble.BleViewModel
 import com.lts.control.ui.screens.ConnectionScreen
 import com.lts.control.ui.screens.ContentScreen
 import com.lts.control.ui.screens.SettingsScreen
+import com.lts.control.R
 
 private enum class Tab { Home, Settings, Connection, More }
 
@@ -26,10 +28,10 @@ fun LtsControlApp(vm: BleViewModel) {
     var current by remember { mutableStateOf(Tab.Home) }
 
     val title = when (current) {
-        Tab.Home -> "LTS Respooler"
-        Tab.Settings -> "Einstellungen"
-        Tab.Connection -> "Verbindung"
-        Tab.More -> "Mehr"
+        Tab.Home -> stringResource(R.string.title_home)
+        Tab.Settings -> stringResource(R.string.title_settings)
+        Tab.Connection -> stringResource(R.string.title_connection)
+        Tab.More -> stringResource(R.string.title_more)
     }
 
     Scaffold(
@@ -54,28 +56,28 @@ fun LtsControlApp(vm: BleViewModel) {
                     selected = current == Tab.Home,
                     onClick = { current = Tab.Home },
                     icon = { Icon(Icons.Rounded.Home, null) },
-                    label = { Text("Steuerung") },
+                    label = { Text(stringResource(R.string.nav_control)) },
                     colors = navItemColors
                 )
                 NavigationBarItem(
                     selected = current == Tab.Settings,
                     onClick = { current = Tab.Settings },
                     icon = { Icon(Icons.Filled.Settings, null) },
-                    label = { Text("Einstellungen") },
+                    label = { Text(stringResource(R.string.nav_settings)) },
                     colors = navItemColors
                 )
                 NavigationBarItem(
                     selected = current == Tab.Connection,
                     onClick = { current = Tab.Connection },
                     icon = { Icon(Icons.Filled.Wifi, null) },
-                    label = { Text("Verbindung") },
+                    label = { Text(stringResource(R.string.nav_connection)) },
                     colors = navItemColors
                 )
                 NavigationBarItem(
                     selected = current == Tab.More,
                     onClick = { current = Tab.More },
                     icon = { Icon(Icons.Filled.MoreHoriz, null) },
-                    label = { Text("Mehr") },
+                    label = { Text(stringResource(R.string.nav_more)) },
                     colors = navItemColors
                 )
             }
@@ -98,7 +100,7 @@ fun LtsControlApp(vm: BleViewModel) {
 private fun AboutScreenPlaceholder() {
     Surface(Modifier.fillMaxSize()) {
         Text(
-            "Mehr (About) – kommt später",
+            stringResource(R.string.more_placeholder),
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(16.dp)
         )

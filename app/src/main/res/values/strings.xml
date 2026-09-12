@@ -1,3 +1,117 @@
 <resources>
     <string name="app_name">LTS Control</string>
+
+    <!-- Shared / navigation -->
+    <string name="title_home">LTS Respooler</string>
+    <string name="title_settings">Settings</string>
+    <string name="title_connection">Connection</string>
+    <string name="title_more">More</string>
+    <string name="nav_control">Control</string>
+    <string name="nav_settings">Settings</string>
+    <string name="nav_connection">Connection</string>
+    <string name="nav_more">More</string>
+    <string name="more_placeholder">More (About) – coming soon</string>
+
+    <!-- Home -->
+    <string name="home_state_idle">Idle</string>
+    <string name="home_state_running">Running...</string>
+    <string name="home_state_paused">Paused</string>
+    <string name="home_state_auto_stop">Auto-stop</string>
+    <string name="home_state_updating">Updating...</string>
+    <string name="home_state_done">Done</string>
+    <string name="home_state_error">Error</string>
+    <string name="pill_connection">Connection</string>
+    <string name="pill_temperature">Temperature</string>
+    <string name="pill_filament">Filament</string>
+    <string name="pill_fan">Fan</string>
+    <string name="common_connected">Connected</string>
+    <string name="common_disconnected">Disconnected</string>
+    <string name="filament_detected">Detected</string>
+    <string name="filament_not_detected">Not detected</string>
+    <string name="value_none">—</string>
+    <string name="temp_unknown">–</string>
+    <string name="temp_celsius">%1$d °C</string>
+    <string name="action_start">Start</string>
+    <string name="action_pause">Pause</string>
+    <string name="action_stop">Stop</string>
+    <string name="percent_value">%1$d %%</string>
+
+    <!-- Settings -->
+    <string name="set_status">Status</string>
+    <string name="state_idle">Ready</string>
+    <string name="state_running">Running</string>
+    <string name="state_paused">Paused</string>
+    <string name="state_auto_stop">Auto-stop</string>
+    <string name="state_updating">Updating…</string>
+    <string name="state_done">Done</string>
+    <string name="state_error">Error</string>
+    <string name="set_section_configuration">Configuration</string>
+    <string name="set_completion_sound">Completion sound</string>
+    <string name="jingle_off">Off</string>
+    <string name="jingle_simple">Simple</string>
+    <string name="jingle_glissando">Glissando</string>
+    <string name="jingle_star_wars">Star Wars</string>
+    <string name="set_led_brightness">LED brightness</string>
+    <string name="set_respool_amount">Respool amount</string>
+    <string name="set_use_filament_sensor">Use filament sensor</string>
+    <string name="set_footer_filament_sensor">When the sensor is disabled, loss of filament will not be detected.</string>
+    <string name="set_section_motor">Motor</string>
+    <string name="set_reverse_direction">Reverse direction</string>
+    <string name="set_strength">Strength</string>
+    <string name="set_auto_stop_sensitivity">Auto-stop sensitivity</string>
+    <string name="sensitivity_off">Off</string>
+    <string name="sensitivity_low">Low</string>
+    <string name="sensitivity_medium">Medium</string>
+    <string name="sensitivity_high">High</string>
+    <string name="set_footer_auto_stop">Auto-stop halts the motor when it meets resistance.</string>
+    <string name="set_high_speed">High speed</string>
+    <string name="set_footer_high_speed">High-speed mode increases the motor speed. Auto-stop is not available in this mode.</string>
+    <string name="set_section_fan">Fan</string>
+    <string name="set_speed">Speed</string>
+    <string name="set_fan_always_on">Fan always on</string>
+    <string name="set_temperature_unit">Temperature unit</string>
+    <string name="unit_celsius">Celsius</string>
+    <string name="unit_fahrenheit">Fahrenheit</string>
+    <string name="set_footer_fan">By default the fan switches off 10 seconds after the respooler stops.</string>
+    <string name="set_section_calibration">Calibration</string>
+    <string name="set_duration">Duration</string>
+    <string name="duration_value">Duration: %1$dm %2$ds</string>
+    <string name="set_footer_calibration" formatted="false">For more accurate time estimates and respool amounts, measure how long a 1 kg spool takes at 80 % speed and enter it here.</string>
+    <string name="set_section_app">App</string>
+    <string name="set_notifications">Notifications</string>
+    <string name="set_footer_notifications">Get push notifications when the respooler stops or finishes.</string>
+
+    <!-- Respool amount -->
+    <string name="respool_title">Respool amount</string>
+    <string name="common_back">Back</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="respool_entire_spool">Entire spool</string>
+    <string name="weight_1_0kg">1.0 kg</string>
+    <string name="weight_0_5kg">0.5 kg</string>
+    <string name="weight_0_25kg">0.25 kg</string>
+    <string name="respool_footer_entire">The respooler stops based on the filament sensor as soon as the upper spool is empty. Recommended when transferring filament between two 1 kg spools.</string>
+    <string name="respool_footer_fixed">The respooler stops based on the amount transferred. Recommended when the upper spool is larger than 1 kg.\n\nStopping is based on dynamically calculated progress. Accuracy may vary by material.</string>
+
+    <!-- Connection -->
+    <string name="conn_title">Connection</string>
+    <string name="conn_scan_networks">Scan for networks</string>
+    <string name="conn_bluetooth">Bluetooth</string>
+    <string name="conn_wlan">Wi-Fi</string>
+    <string name="conn_error_short">Error!</string>
+    <string name="conn_wlan_hint">To connect to Wi-Fi, scan for available networks here and enter the password. Works with 2.4 GHz networks only.</string>
+    <string name="conn_network">Network</string>
+    <string name="conn_select_count">Select (%1$d)</string>
+    <string name="conn_password">Password</string>
+    <string name="conn_connecting">Connecting…</string>
+    <string name="conn_send_credentials">Send credentials</string>
+    <string name="conn_bluetooth_hint">If you have connection problems, remove the saved device and reconnect.</string>
+    <string name="conn_connect">Connect</string>
+    <string name="conn_forget_device">Remove saved device</string>
+
+    <!-- Language picker -->
+    <string name="set_language">Language</string>
+    <string name="language_system">System default</string>
+    <string name="language_english">English</string>
+    <string name="language_german">Deutsch</string>
+    <string name="language_dialog_title">Choose language</string>
 </resources>

@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.ui.res.painterResource
 
 import com.lts.control.R
+import androidx.compose.ui.res.stringResource
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -37,6 +38,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 import com.lts.control.core.ble.BleViewModel
 import com.lts.control.core.ble.model.DeviceState
+import com.lts.control.core.ble.model.homeLabelRes
 import kotlinx.coroutines.flow.collectLatest
 import kotlin.math.abs
 import kotlin.math.max
@@ -115,7 +117,7 @@ fun ContentScreen(
             PillRow(
                 isConnected = isConnected,
                 hasFilament = (status?.hasFilament == true) && isConnected,
-                tempLabel = tempLabel(tempC),
+                tempLabel = tempC?.let { stringResource(R.string.temp_celsius, it) } ?: stringResource(R.string.temp_unknown),
                 tempIconTint = tempIconColor,
             )
 
@@ -230,17 +232,8 @@ fun ContentScreen(
                             targetState = deviceState to remaining,
                             transitionSpec = { fadeIn(tween(180)) with fadeOut(tween(180)) }
                         ) { (state, rem) ->
-                            val text = when (state) {
-                                DeviceState.IDLE      -> "Leerlauf"
-                                DeviceState.RUNNING   -> "Läuft..."
-                                DeviceState.PAUSED    -> "Pausiert"
-                                DeviceState.AUTO_STOP -> "Auto-Stopp"
-                                DeviceState.UPDATING  -> "Wird aktualisiert..."
-                                DeviceState.DONE      -> "Fertig"
-                                DeviceState.ERROR     -> "Fehler"
-                            }
                             Text(
-                                text = text,
+                                text = stringResource(state.homeLabelRes()),
                                 style = MaterialTheme.typography.bodyMedium.copy(fontSize = 17.sp).copy(color = Color.Gray),
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier.fillMaxWidth()
@@ -305,8 +298,8 @@ private fun PillRow(
                         modifier = Modifier.size(22.dp)
                     )
                 },
-                title = "Verbindung",
-                subtitle = if (isConnected) "Verbunden" else "Getrennt",
+                title = stringResource(R.string.pill_connection),
+                subtitle = if (isConnected) stringResource(R.string.common_connected) else stringResource(R.string.common_disconnected),
                 modifier = Modifier.weight(1f)
             )
             // Temperatur (rechts oben)
@@ -319,7 +312,7 @@ private fun PillRow(
                         modifier = Modifier.size(22.dp)
                     )
                 },
-                title = "Temperatur",
+                title = stringResource(R.string.pill_temperature),
                 subtitle = tempLabel,
                 modifier = Modifier.weight(1f)
             )
@@ -336,8 +329,8 @@ private fun PillRow(
                         modifier = Modifier.size(23.5.dp)
                     )
                 },
-                title = "Filament",
-                subtitle = if (hasFilament) "Erkannt" else "Nicht erkannt",
+                title = stringResource(R.string.pill_filament),
+                subtitle = if (hasFilament) stringResource(R.string.filament_detected) else stringResource(R.string.filament_not_detected),
                 modifier = Modifier.weight(1f)
             )
             // Lüfter (rechts unten)
@@ -345,8 +338,8 @@ private fun PillRow(
                 leading = {
                     Icon(Symbols.Fan, contentDescription = null, tint = LocalContentColor.current, modifier = Modifier.size(22.dp))
                 },
-                title = "Lüfter",
-                subtitle = "—",
+                title = stringResource(R.string.pill_fan),
+                subtitle = stringResource(R.string.value_none),
                 modifier = Modifier.weight(1f)
             )
         }
@@ -449,12 +442,12 @@ private fun ControlCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 PillButton(
-                    text = if (isRunning) "Pause" else "Start",
+                    text = if (isRunning) stringResource(R.string.action_pause) else stringResource(R.string.action_start),
                     onClick = onStartOrPause,
                     modifier = Modifier.weight(1f)
                 )
                 PillButton(
-                    text = "Stopp",
+                    text = stringResource(R.string.action_stop),
                     onClick = onStop,
                     modifier = Modifier.weight(1f),
                     danger = true
@@ -487,7 +480,7 @@ private fun ControlCard(
                     contentAlignment = Alignment.CenterEnd
                 ) {
                     Text(
-                        text = "${speed.toInt()} %",
+                        text = stringResource(R.string.percent_value, speed.toInt()),
                         style = MaterialTheme.typography.bodyMedium.copy(fontSize = 17.sp).copy(color = Color.Gray)
                     )
                 }
@@ -563,18 +556,6 @@ private fun rememberSmoothRotation(targetRpm: Float): State<Float> {
         }
     }
     return rotation
-}
-
-private fun tempLabel(tempC: Int?): String = when (tempC) {
-    null -> "–"
-    else -> "${tempC} °C"
-}
-
-private fun formatSeconds(s: Int): String {
-    val sec = max(0, s)
-    val m = sec / 60
-    val r = sec % 60
-    return if (m > 0) "%d:%02d".format(m, r) else "${r}s"
 }
 
 /* Simple Symbol Aliases (Material Icons ersetzbar) */

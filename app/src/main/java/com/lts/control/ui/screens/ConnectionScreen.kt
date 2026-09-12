@@ -23,11 +23,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.lts.control.core.ble.BleManager
 import com.lts.control.core.ble.BleViewModel
 import com.lts.control.core.ble.model.DeviceState
+import com.lts.control.R
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
@@ -108,11 +110,11 @@ fun ConnectionScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Verbindung") },
+                title = { Text(stringResource(R.string.conn_title)) },
                 navigationIcon = {
                     if (onBack != null) {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.Filled.ArrowBack, contentDescription = "Zurück")
+                            Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                         }
                     }
                 },
@@ -124,7 +126,7 @@ fun ConnectionScreen(
                             vm.wifiScan()
                         }
                     ) {
-                        Icon(Icons.Filled.Refresh, contentDescription = "Netzwerk-Scan")
+                        Icon(Icons.Filled.Refresh, contentDescription = stringResource(R.string.conn_scan_networks))
                     }
                 }
             )
@@ -146,8 +148,8 @@ fun ConnectionScreen(
                 Capsule(
                     modifier = Modifier.weight(1f),
                     icon = { Icon(Icons.Filled.Bluetooth, contentDescription = null, tint = if (isBleConnected) Color.Cyan else LocalContentColor.current) },
-                    title = "Bluetooth",
-                    subtitle = if (isBleConnected) "Verbunden" else "Getrennt"
+                    title = stringResource(R.string.conn_bluetooth),
+                    subtitle = if (isBleConnected) stringResource(R.string.common_connected) else stringResource(R.string.common_disconnected)
                 )
                 val wifiScale by animateFloatAsState(
                     targetValue = when {
@@ -168,19 +170,19 @@ fun ConnectionScreen(
                         }
                         Icon(Icons.Filled.Wifi, contentDescription = null, tint = tint)
                     },
-                    title = "WLAN",
+                    title = stringResource(R.string.conn_wlan),
                     subtitle = when {
-                        showWifiError -> "Fehler!"
-                        isBleConnected && isWifiConnected -> "Verbunden"
-                        else -> "Getrennt"
+                        showWifiError -> stringResource(R.string.conn_error_short)
+                        isBleConnected && isWifiConnected -> stringResource(R.string.common_connected)
+                        else -> stringResource(R.string.common_disconnected)
                     }
                 )
             }
 
             // ----------------------------------- WLAN -----------------------------------
-            SettingsGroupHeader("WLAN")
+            SettingsGroupHeader(stringResource(R.string.conn_wlan))
             Text(
-                "Für die WLAN-Verbindung hier nach verfügbaren Netzwerken suchen und das Passwort eingeben. Funktioniert nur mit 2,4 GHz Netzwerken.",
+                stringResource(R.string.conn_wlan_hint),
                 style = MaterialTheme.typography.bodySmall, color = Color.Gray,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
@@ -200,14 +202,14 @@ fun ConnectionScreen(
                             .heightIn(min = 48.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Netzwerk", Modifier.weight(1f))
+                        Text(stringResource(R.string.conn_network), Modifier.weight(1f))
                         if (isScanning) {
                             CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                         } else {
                             var expanded by remember(scanSessionId) { mutableStateOf(false) }
                             val items = ssids
                             Text(
-                                if (wifiSsid.isBlank()) "Auswählen (${items.size})" else wifiSsid,
+                                if (wifiSsid.isBlank()) stringResource(R.string.conn_select_count, items.size) else wifiSsid,
                                 color = Color.Gray,
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(8.dp))
@@ -216,7 +218,7 @@ fun ConnectionScreen(
                             )
                             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                                 DropdownMenuItem(
-                                    text = { Text("Auswählen (${items.size})") },
+                                    text = { Text(stringResource(R.string.conn_select_count, items.size)) },
                                     onClick = {
                                         wifiSsid = ""
                                         expanded = false
@@ -240,7 +242,7 @@ fun ConnectionScreen(
                         value = wifiPassword,
                         onValueChange = { wifiPassword = it },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Passwort") },
+                        label = { Text(stringResource(R.string.conn_password)) },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation()
                     )
@@ -260,9 +262,9 @@ fun ConnectionScreen(
                             if (isConnecting) {
                                 CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                                 Spacer(Modifier.width(10.dp))
-                                Text("Verbinden…")
+                                Text(stringResource(R.string.conn_connecting))
                             } else {
-                                Text("Zugangsdaten senden")
+                                Text(stringResource(R.string.conn_send_credentials))
                             }
                         }
                     }
@@ -272,9 +274,9 @@ fun ConnectionScreen(
             Spacer(Modifier.height(14.dp))
 
             // -------------------------------- Bluetooth ---------------------------------
-            SettingsGroupHeader("Bluetooth")
+            SettingsGroupHeader(stringResource(R.string.conn_bluetooth))
             Text(
-                "Bei Verbindungsproblemen das gespeicherte Gerät entfernen und die Verbindung neu aufbauen.",
+                stringResource(R.string.conn_bluetooth_hint),
                 style = MaterialTheme.typography.bodySmall, color = Color.Gray,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
@@ -290,14 +292,14 @@ fun ConnectionScreen(
                     Button(
                         onClick = { vm.startScan() },
                         enabled = connection !is BleManager.ConnectionState.Ready
-                    ) { Text("Verbindung herstellen") }
+                    ) { Text(stringResource(R.string.conn_connect)) }
 
                     Spacer(Modifier.height(8.dp))
 
                     TextButton(
                         onClick = { vm.disconnect() },
                         colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD32F2F))
-                    ) { Text("Gespeichertes Gerät entfernen") }
+                    ) { Text(stringResource(R.string.conn_forget_device)) }
                 }
             }
 

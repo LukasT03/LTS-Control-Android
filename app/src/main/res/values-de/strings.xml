@@ -1,0 +1,117 @@
+<resources>
+    <string name="app_name">LTS Control</string>
+
+    <!-- Gemeinsam / Navigation -->
+    <string name="title_home">LTS Respooler</string>
+    <string name="title_settings">Einstellungen</string>
+    <string name="title_connection">Verbindung</string>
+    <string name="title_more">Mehr</string>
+    <string name="nav_control">Steuerung</string>
+    <string name="nav_settings">Einstellungen</string>
+    <string name="nav_connection">Verbindung</string>
+    <string name="nav_more">Mehr</string>
+    <string name="more_placeholder">Mehr (About) – kommt später</string>
+
+    <!-- Steuerung -->
+    <string name="home_state_idle">Leerlauf</string>
+    <string name="home_state_running">Läuft...</string>
+    <string name="home_state_paused">Pausiert</string>
+    <string name="home_state_auto_stop">Auto-Stopp</string>
+    <string name="home_state_updating">Wird aktualisiert...</string>
+    <string name="home_state_done">Fertig</string>
+    <string name="home_state_error">Fehler</string>
+    <string name="pill_connection">Verbindung</string>
+    <string name="pill_temperature">Temperatur</string>
+    <string name="pill_filament">Filament</string>
+    <string name="pill_fan">Lüfter</string>
+    <string name="common_connected">Verbunden</string>
+    <string name="common_disconnected">Getrennt</string>
+    <string name="filament_detected">Erkannt</string>
+    <string name="filament_not_detected">Nicht erkannt</string>
+    <string name="value_none">—</string>
+    <string name="temp_unknown">–</string>
+    <string name="temp_celsius">%1$d °C</string>
+    <string name="action_start">Start</string>
+    <string name="action_pause">Pause</string>
+    <string name="action_stop">Stopp</string>
+    <string name="percent_value">%1$d %%</string>
+
+    <!-- Einstellungen -->
+    <string name="set_status">Status</string>
+    <string name="state_idle">Bereit</string>
+    <string name="state_running">Läuft</string>
+    <string name="state_paused">Pausiert</string>
+    <string name="state_auto_stop">Auto-Stopp</string>
+    <string name="state_updating">Wird aktualisiert…</string>
+    <string name="state_done">Fertig</string>
+    <string name="state_error">Fehler</string>
+    <string name="set_section_configuration">Konfiguration</string>
+    <string name="set_completion_sound">Ton bei Fertigstellung</string>
+    <string name="jingle_off">Aus</string>
+    <string name="jingle_simple">Einfach</string>
+    <string name="jingle_glissando">Glissando</string>
+    <string name="jingle_star_wars">Star Wars</string>
+    <string name="set_led_brightness">LED Helligkeit</string>
+    <string name="set_respool_amount">Respool-Menge</string>
+    <string name="set_use_filament_sensor">Filament Sensor nutzen</string>
+    <string name="set_footer_filament_sensor">Wenn der Sensor deaktiviert ist, wird nicht auf den Verlust von Filament reagiert.</string>
+    <string name="set_section_motor">Motor</string>
+    <string name="set_reverse_direction">Richtung umkehren</string>
+    <string name="set_strength">Stärke</string>
+    <string name="set_auto_stop_sensitivity">Auto-Stopp Empfindlichkeit</string>
+    <string name="sensitivity_off">Aus</string>
+    <string name="sensitivity_low">Gering</string>
+    <string name="sensitivity_medium">Mittel</string>
+    <string name="sensitivity_high">Hoch</string>
+    <string name="set_footer_auto_stop">Der Auto-Stopp stoppt den Motor bei Widerstand.</string>
+    <string name="set_high_speed">High-Speed</string>
+    <string name="set_footer_high_speed">Der High-Speed Modus erhöht die Geschwindigkeit des Motors. Auto-Stopp ist dabei nicht verfügbar.</string>
+    <string name="set_section_fan">Lüfter</string>
+    <string name="set_speed">Geschwindigkeit</string>
+    <string name="set_fan_always_on">Lüfter immer an</string>
+    <string name="set_temperature_unit">Temperatur-Einheit</string>
+    <string name="unit_celsius">Celsius</string>
+    <string name="unit_fahrenheit">Fahrenheit</string>
+    <string name="set_footer_fan">Der Lüfter schaltet sich standardmäßig 10 Sekunden nach stoppen des Respoolers aus.</string>
+    <string name="set_section_calibration">Kalibrierung</string>
+    <string name="set_duration">Dauer</string>
+    <string name="duration_value">Dauer: %1$dm %2$ds</string>
+    <string name="set_footer_calibration" formatted="false">Für genauere Zeitangaben bzw. Respool-Mengen die benötigte Dauer für eine 1 kg Spule bei 80 % Geschwindigkeit messen und hier anpassen.</string>
+    <string name="set_section_app">App</string>
+    <string name="set_notifications">Benachrichtigungen</string>
+    <string name="set_footer_notifications">Erhalte Push-Benachrichtigungen, wenn der Respooler stoppt oder fertig ist.</string>
+
+    <!-- Respool-Menge -->
+    <string name="respool_title">Respool-Menge</string>
+    <string name="common_back">Zurück</string>
+    <string name="common_cancel">Abbrechen</string>
+    <string name="respool_entire_spool">Gesamte Spule</string>
+    <string name="weight_1_0kg">1,0 kg</string>
+    <string name="weight_0_5kg">0,5 kg</string>
+    <string name="weight_0_25kg">0,25 kg</string>
+    <string name="respool_footer_entire">Der Respooler stoppt anhand des Filament Sensors, sobald die obere Spule leer ist. Empfohlen, wenn Filament zwischen zwei 1 kg Spulen übertragen wird.</string>
+    <string name="respool_footer_fixed">Der Respooler stoppt anhand der übertragenen Menge. Empfohlen, wenn die obere Spule größer als 1 kg ist.\n\nDas Stoppen funktioniert auf Basis des dynamisch berechneten Fortschritts. Die Genauigkeit kann je nach Material variieren.</string>
+
+    <!-- Verbindung -->
+    <string name="conn_title">Verbindung</string>
+    <string name="conn_scan_networks">Netzwerk-Scan</string>
+    <string name="conn_bluetooth">Bluetooth</string>
+    <string name="conn_wlan">WLAN</string>
+    <string name="conn_error_short">Fehler!</string>
+    <string name="conn_wlan_hint">Für die WLAN-Verbindung hier nach verfügbaren Netzwerken suchen und das Passwort eingeben. Funktioniert nur mit 2,4 GHz Netzwerken.</string>
+    <string name="conn_network">Netzwerk</string>
+    <string name="conn_select_count">Auswählen (%1$d)</string>
+    <string name="conn_password">Passwort</string>
+    <string name="conn_connecting">Verbinden…</string>
+    <string name="conn_send_credentials">Zugangsdaten senden</string>
+    <string name="conn_bluetooth_hint">Bei Verbindungsproblemen das gespeicherte Gerät entfernen und die Verbindung neu aufbauen.</string>
+    <string name="conn_connect">Verbindung herstellen</string>
+    <string name="conn_forget_device">Gespeichertes Gerät entfernen</string>
+
+    <!-- Sprachauswahl -->
+    <string name="set_language">Sprache</string>
+    <string name="language_system">Systemsprache</string>
+    <string name="language_english">English</string>
+    <string name="language_german">Deutsch</string>
+    <string name="language_dialog_title">Sprache wählen</string>
+</resources>
