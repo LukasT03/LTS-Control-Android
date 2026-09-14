@@ -66,6 +66,12 @@
     <string name="set_footer_auto_stop">Auto-stop halts the motor when it meets resistance.</string>
     <string name="set_high_speed">High speed</string>
     <string name="set_footer_high_speed">High-speed mode increases the motor speed. Auto-stop is not available in this mode.</string>
+    <string name="set_motor_hardware">Motor hardware version</string>
+    <string name="motor_standard">Standard</string>
+    <string name="motor_alpha">Alpha</string>
+    <string name="motor_standard_full">Standard 17HS15-1504S 1.5A</string>
+    <string name="motor_alpha_full">Alpha 17HS19-2004S1 2.0A</string>
+    <string name="set_footer_motor_hardware" formatted="false">Choose the motor installed in your respooler. Alpha raises the current at 120 % strength from 1.4 A to 1.7 A. Warning: selecting Alpha with the standard 1.5 A motor may make it run too hot and burn out sooner.</string>
     <string name="set_section_fan">Fan</string>
     <string name="set_speed">Speed</string>
     <string name="set_fan_always_on">Fan always on</string>
@@ -173,6 +179,16 @@
     <string name="about_btn_update">Update firmware</string>
     <string name="about_instructions">Notes</string>
     <string name="about_connection_settings">Connection settings</string>
+    <string name="about_power_title">Power input</string>
+    <string name="about_usb_voltage">USB-C voltage</string>
+    <string name="about_voltage_value">%1$.1f V</string>
+    <string name="about_pd_status">USB-C power delivery</string>
+    <string name="about_pd_ok">Negotiated</string>
+    <string name="about_pd_not_ok">Not negotiated</string>
+    <string name="about_power_source">Power source</string>
+    <string name="about_power_dc_jack">DC jack</string>
+    <string name="about_power_hint_usb">The motor needs 12 V.</string>
+    <string name="about_power_hint_dc">The board can\'t measure the DC jack voltage. The motor needs 12 V.</string>
     <string name="about_legal_footer">© 2025, LTS Design, Heiligenbornstraße 23, 01219 Dresden, Deutschland, info@lts-design.com</string>
     <string name="ota_alert_success_title">Update successful!</string>
     <string name="ota_alert_success_message">The OTA update was successful.</string>

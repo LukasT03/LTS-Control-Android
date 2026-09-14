@@ -146,6 +146,9 @@ class DeviceRepository private constructor(private val context: Context) {
                                 wifiConnected = null,
                                 wifiConnectionResult = null,
                                 isFanOn = false,
+                                usbVoltageMv = null,
+                                powerGood = null,
+                                highCurrent = null,
                                 deviceState = DeviceState.IDLE
                             )
                         }
@@ -239,6 +242,8 @@ class DeviceRepository private constructor(private val context: Context) {
                 wifiSsid = payload.wifiSsid ?: s.wifiSsid,
                 wifiConnected = effectiveWifiOk,
                 isFanOn = payload.fanOn ?: s.isFanOn,
+                usbVoltageMv = payload.usbVoltageMv,
+                powerGood = payload.powerGood,
                 firmwareVersion = fw
             )
 
@@ -292,6 +297,12 @@ class DeviceRepository private constructor(private val context: Context) {
                 if (echoGuard.shouldAcceptRemote("highSpeed")) {
                     updated = updated.copy(highSpeed = hs)
                 }
+            }
+            // Status packets are full snapshots, so a missing key means the firmware has no 2A mode
+            if (payload.highCurrent == null) {
+                updated = updated.copy(highCurrent = null)
+            } else if (echoGuard.shouldAcceptRemote("highCurrent")) {
+                updated = updated.copy(highCurrent = payload.highCurrent)
             }
             payload.durationAt80?.let { dur ->
                 if (echoGuard.shouldAcceptRemote("durationAt80")) {
@@ -535,6 +546,15 @@ class DeviceRepository private constructor(private val context: Context) {
             if (!didInitialSync) return@launch
             bleManager.sendBytes(Commands.setHighSpeedMode(hs))
             preferencesRepo.saveDeviceSettings(_status.value)
+        }
+    }
+
+    fun setHighCurrent(on: Boolean) {
+        echoGuard.markLocal("highCurrent")
+        _status.update { it.copy(highCurrent = on) }
+        scope.launch {
+            if (!didInitialSync) return@launch
+            bleManager.sendBytes(Commands.setHighCurrentMode(on))
         }
     }
 

@@ -58,6 +58,7 @@ class BleViewModel(app: Application) : AndroidViewModel(app) {
     fun setMotorStrength(strength: Int) = repo.setMotorStrength(strength)
     fun setTorque(level: Int) = repo.setTorqueLimit(level)
     fun setHighSpeed(enabled: Boolean) = repo.setHighSpeed(enabled)
+    fun setHighCurrent(enabled: Boolean) = repo.setHighCurrent(enabled)
     fun setDurationAt80(seconds: Int) = repo.setDurationAt80(seconds)
     fun setTargetWeight(weight: Int) = repo.setTargetWeight(weight)
 

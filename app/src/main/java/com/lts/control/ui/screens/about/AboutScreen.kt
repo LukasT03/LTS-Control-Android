@@ -359,6 +359,57 @@ fun AboutScreen(
                 }
             }
 
+            // Power input: only when the firmware reports it
+            if (isConnected && (status.usbVoltageMv != null || status.powerGood != null)) {
+                Spacer(modifier = Modifier.height(20.dp))
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.about_power_title),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        // USB-C VBUS only sees power from the USB-C port; near zero means the DC jack is supplying the board
+                        val onDcJack = status.usbVoltageMv?.let { it < DC_JACK_VBUS_THRESHOLD_MV } == true
+                        if (onDcJack) {
+                            PowerInfoRow(
+                                label = stringResource(R.string.about_power_source),
+                                value = stringResource(R.string.about_power_dc_jack)
+                            )
+                        } else {
+                            status.usbVoltageMv?.let { mv ->
+                                PowerInfoRow(
+                                    label = stringResource(R.string.about_usb_voltage),
+                                    value = stringResource(R.string.about_voltage_value, mv / 1000f)
+                                )
+                            }
+                            status.powerGood?.let { good ->
+                                PowerInfoRow(
+                                    label = stringResource(R.string.about_pd_status),
+                                    value = stringResource(if (good) R.string.about_pd_ok else R.string.about_pd_not_ok)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(if (onDcJack) R.string.about_power_hint_dc else R.string.about_power_hint_usb),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(36.dp))
 
             // Legal Footer
@@ -413,6 +464,31 @@ fun AboutScreen(
                     }
                 }
             }
+        )
+    }
+}
+
+// Real USB-C supplies are >= ~4.5 V at the board; below this the reading is diode leakage / ADC noise
+private const val DC_JACK_VBUS_THRESHOLD_MV = 3000
+
+@Composable
+private fun PowerInfoRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

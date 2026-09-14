@@ -122,6 +122,22 @@ class StatusPayloadTest {
     }
 
     @Test
+    fun testHighCurrentAndPowerFields() {
+        val payload = json.decodeFromString<StatusPayload>(
+            """{"STAT":"I","HI_CUR":true,"VBUS_MV":12080,"PG":true}"""
+        )
+        assertEquals(true, payload.highCurrent)
+        assertEquals(12080, payload.usbVoltageMv)
+        assertEquals(true, payload.powerGood)
+
+        // Older firmware omits the keys entirely
+        val old = json.decodeFromString<StatusPayload>("""{"STAT":"I","FW":"1.2.1"}""")
+        assertNull(old.highCurrent)
+        assertNull(old.usbVoltageMv)
+        assertNull(old.powerGood)
+    }
+
+    @Test
     fun testForwardCompatibilityIgnoresUnknownKeys() {
         val raw = """
             {

@@ -15,6 +15,7 @@ data class DeviceStatus(
     val motorStrength: Int = 100,
     val torqueLimit: Int = 0,
     val highSpeed: Boolean = false,
+    val highCurrent: Boolean? = null, // null = firmware has no 2A mode
     val durationAt80: Int = 895,
     val targetWeight: Int = 0,
     val servoAngleR: Int = 5,
@@ -32,6 +33,8 @@ data class DeviceStatus(
     val wifiConnectionResult: Boolean? = null,
     val otaSuccess: Boolean? = null,
     val isFanOn: Boolean = false,
+    val usbVoltageMv: Int? = null,
+    val powerGood: Boolean? = null,
     val deviceState: DeviceState = DeviceState.IDLE,
 
     // Persisted identity

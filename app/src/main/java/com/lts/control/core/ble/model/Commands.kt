@@ -50,6 +50,7 @@ object Commands {
     fun setTargetWeight(mode0to3: Int) = set { put("WGT", mode0to3.coerceIn(0, 3)) }
     fun setSpeedPercent(p50to100: Int) = set { put("SPD", p50to100.coerceIn(50, 100)) }
     fun setHighSpeedMode(on: Boolean) = set { put("HS", if (on) 1 else 0) }
+    fun setHighCurrentMode(on: Boolean) = set { put("HI_CUR", if (on) 1 else 0) }
     fun setFanSpeed(p10to100: Int) = set { put("FAN_SPD", p10to100.coerceIn(10, 100)) }
     fun setFanAlwaysOn(on: Boolean) = set { put("FAN_ALW", if (on) 1 else 0) }
 

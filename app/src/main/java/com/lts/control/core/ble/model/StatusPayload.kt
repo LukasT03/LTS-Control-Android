@@ -32,11 +32,17 @@ data class StatusPayload(
     @SerialName("WGT") val targetWeight: Int? = null,
     @SerialName("DUR") val durationAt80: Int? = null,
     @SerialName("HS") val highSpeed: Boolean? = null,
+    // Absent on firmware without 2A mode
+    @SerialName("HI_CUR") val highCurrent: Boolean? = null,
 
     // Fan
     @SerialName("FAN_SPD") val fanSpeed: Int? = null,
     @SerialName("FAN_ON") val fanOn: Boolean? = null,
     @SerialName("FAN_ALW") val fanAlwaysOn: Boolean? = null,
+
+    // Power input (absent on firmware that doesn't report it)
+    @SerialName("VBUS_MV") val usbVoltageMv: Int? = null,
+    @SerialName("PG") val powerGood: Boolean? = null,
 
     // Servo (Pro only)
     @SerialName("SV_R") val servoAngleR: Int? = null,

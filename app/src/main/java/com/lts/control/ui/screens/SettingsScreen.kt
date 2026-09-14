@@ -227,6 +227,23 @@ fun SettingsScreen(
         }
         SectionFooter(stringResource(R.string.set_footer_high_speed))
 
+        // Motor hardware (firmware HI_CUR): only when the firmware reports it
+        status.highCurrent?.let { highCurrent ->
+            SettingsCard {
+                DropdownRow(
+                    title = stringResource(R.string.set_motor_hardware),
+                    options = listOf(
+                        stringResource(R.string.motor_standard_full),
+                        stringResource(R.string.motor_alpha_full)
+                    ),
+                    selectedIndex = if (highCurrent) 1 else 0,
+                    onSelected = { vm.setHighCurrent(it == 1) },
+                    selectedLabel = stringResource(if (highCurrent) R.string.motor_alpha else R.string.motor_standard)
+                )
+            }
+            SectionFooter(stringResource(R.string.set_footer_motor_hardware))
+        }
+
         /* ------------------------------ Servo (Pro only §5.3) ------------------------------ */
         if (status.isProBoard) {
             SectionHeader(stringResource(R.string.set_section_servo))
@@ -505,7 +522,8 @@ fun RespoolAmountScreen(
     options: List<String>,
     selectedIndex: Int,
     onSelected: (Int) -> Unit,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    selectedLabel: String? = null
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -515,7 +533,7 @@ fun RespoolAmountScreen(
         trailingContent = {
             Box {
                 Text(
-                    text = options.getOrElse(selectedIndex) { "" },
+                    text = selectedLabel ?: options.getOrElse(selectedIndex) { "" },
                     color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                     style = MaterialTheme.typography.bodyMedium
                 )

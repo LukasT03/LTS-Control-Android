@@ -66,6 +66,12 @@
     <string name="set_footer_auto_stop">Der Auto-Stopp stoppt den Motor bei Widerstand.</string>
     <string name="set_high_speed">High-Speed</string>
     <string name="set_footer_high_speed">Der High-Speed Modus erhöht die Geschwindigkeit des Motors. Auto-Stopp ist dabei nicht verfügbar.</string>
+    <string name="set_motor_hardware">Motor-Hardwareversion</string>
+    <string name="motor_standard">Standard</string>
+    <string name="motor_alpha">Alpha</string>
+    <string name="motor_standard_full">Standard 17HS15-1504S 1,5 A</string>
+    <string name="motor_alpha_full">Alpha 17HS19-2004S1 2,0 A</string>
+    <string name="set_footer_motor_hardware" formatted="false">Wähle den im Respooler verbauten Motor. Alpha erhöht den Strom bei 120 % Stärke von 1,4 A auf 1,7 A. Achtung: Alpha mit dem Standard-Motor (1,5 A) kann den Motor überhitzen und früher durchbrennen lassen.</string>
     <string name="set_section_fan">Lüfter</string>
     <string name="set_speed">Geschwindigkeit</string>
     <string name="set_fan_always_on">Lüfter immer an</string>
@@ -173,6 +179,16 @@
     <string name="about_btn_update">Firmware aktualisieren</string>
     <string name="about_instructions">Hinweise</string>
     <string name="about_connection_settings">Verbindungseinstellungen</string>
+    <string name="about_power_title">Stromversorgung</string>
+    <string name="about_usb_voltage">USB-C Spannung</string>
+    <string name="about_voltage_value">%1$.1f V</string>
+    <string name="about_pd_status">USB-C Power Delivery</string>
+    <string name="about_pd_ok">Ausgehandelt</string>
+    <string name="about_pd_not_ok">Nicht ausgehandelt</string>
+    <string name="about_power_source">Stromquelle</string>
+    <string name="about_power_dc_jack">Hohlbuchse</string>
+    <string name="about_power_hint_usb">Der Motor benötigt 12 V.</string>
+    <string name="about_power_hint_dc">Die Spannung an der Hohlbuchse kann das Board nicht messen. Der Motor benötigt 12 V.</string>
     <string name="about_legal_footer">© 2025, LTS Design, Heiligenbornstraße 23, 01219 Dresden, Deutschland, info@lts-design.com</string>
     <string name="ota_alert_success_title">Update erfolgreich!</string>
     <string name="ota_alert_success_message">Das OTA-Update war erfolgreich.</string>
