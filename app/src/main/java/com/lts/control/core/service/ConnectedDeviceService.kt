@@ -90,7 +90,7 @@ class ConnectedDeviceService : Service() {
         }
 
         val builder = NotificationCompat.Builder(this, LocalNotificationManager.CHANNEL_PROGRESS_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("LTS Respooler — $stateName")
             .setContentText("$progressInt %   $timeString")
             .setProgress(100, progressInt, false)
