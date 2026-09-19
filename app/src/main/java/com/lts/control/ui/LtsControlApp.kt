@@ -49,7 +49,8 @@ fun LtsControlApp(vm: BleViewModel) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: Routes.HOME
 
-    val status by vm.status.collectAsState()
+    // Read status only inside derivedStateOf so 2 Hz telemetry doesn't recompose the whole nav tree
+    val status = vm.status.collectAsState()
     val isConnected by vm.isConnected.collectAsState()
     val hasCompletedSetup by vm.hasCompletedSetup.collectAsState()
     val lastDeviceAddress by vm.lastDeviceAddress.collectAsState()
@@ -72,10 +73,10 @@ fun LtsControlApp(vm: BleViewModel) {
     val isTopLevel = currentRoute in topLevelRoutes
 
     // Forced Board Variant Modal condition (§5.2)
-    val showForcedVariantModal = status.didReceiveBoardVariant &&
-            status.boardVariant == BoardVariant.UNKNOWN &&
-            isConnected &&
-            !showSplash
+    val isVariantUnknown by remember {
+        derivedStateOf { status.value.didReceiveBoardVariant && status.value.boardVariant == BoardVariant.UNKNOWN }
+    }
+    val showForcedVariantModal = isVariantUnknown && isConnected && !showSplash
 
     if (showForcedVariantModal) {
         BoardVariantSelectionDialog(

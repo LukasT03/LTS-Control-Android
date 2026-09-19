@@ -18,7 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -38,7 +38,9 @@ import com.lts.control.core.ble.model.DeviceState
 import com.lts.control.core.ble.model.homeLabelRes
 import com.lts.control.core.state.DeviceStatus
 import com.lts.control.ui.theme.*
+import kotlinx.coroutines.flow.first
 import java.util.Locale
+import kotlin.math.abs
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -241,6 +243,14 @@ private fun InteractiveSpool(deviceState: DeviceState) {
                 else -> 0f
             }
 
+            // Idle with the spool at rest: stop requesting frames until the user grabs it
+            if (targetVel == 0f && !isDragging && abs(angularVel) < 0.01f) {
+                angularVel = 0f
+                snapshotFlow { isDragging }.first { it }
+                lastNanos = withFrameNanos { it }
+                continue
+            }
+
             if (!isDragging) {
                 val smoothing = if (targetVel > angularVel) accel else decel
                 angularVel += (targetVel - angularVel) * smoothing
@@ -301,7 +311,8 @@ private fun InteractiveSpool(deviceState: DeviceState) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .rotate(rotation),
+                // Rotation is read in the draw phase so animating it doesn't recompose every frame
+                .graphicsLayer { rotationZ = rotation },
             contentAlignment = Alignment.Center
         ) {
             Image(

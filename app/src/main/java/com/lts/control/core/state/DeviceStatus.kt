@@ -51,6 +51,21 @@ data class DeviceStatus(
     val isProBoard: Boolean
         get() = boardVariant == BoardVariant.PRO
 
+    fun withoutTelemetry(): DeviceStatus = copy(
+        hasFilament = false,
+        progress = 0f,
+        remainingTime = null,
+        chipTemperature = null,
+        wifiSsid = null,
+        wifiConnected = null,
+        wifiConnectionResult = null,
+        isFanOn = false,
+        usbVoltageMv = null,
+        powerGood = null,
+        highCurrent = null,
+        deviceState = DeviceState.IDLE
+    )
+
     fun toBoardTypeLabel(): String? {
         val raw = boardVersion ?: return null
         val isPro = isProBoard

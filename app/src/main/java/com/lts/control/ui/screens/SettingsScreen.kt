@@ -319,9 +319,9 @@ fun SettingsScreen(
             StepperRow(
                 title = stringResource(R.string.set_duration),
                 currentLabel = stringResource(R.string.duration_value, min, sec),
-                minusEnabled = status.durationAt80 > 5,
+                minusEnabled = status.durationAt80 > 10,
                 plusEnabled = status.durationAt80 < 2000,
-                onMinus = { vm.setDurationAt80(maxOf(5, status.durationAt80 - 5)) },
+                onMinus = { vm.setDurationAt80(maxOf(10, status.durationAt80 - 5)) },
                 onPlus = { vm.setDurationAt80(minOf(2000, status.durationAt80 + 5)) }
             )
         }

@@ -18,6 +18,8 @@ import com.lts.control.core.repository.DeviceRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -26,14 +28,23 @@ class ConnectedDeviceService : Service() {
 
     private val serviceScope = CoroutineScope(Dispatchers.Main + Job())
     private var isStartedAsForeground = false
+    private var statusJob: Job? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Repeated start requests must not stack up extra collectors
+        if (statusJob?.isActive == true) return START_STICKY
         val repo = DeviceRepository.getInstance(applicationContext)
 
-        serviceScope.launch {
-            repo.status.collectLatest { status ->
+        statusJob = serviceScope.launch {
+            // Only rebuild the notification when something it shows changes
+            repo.status.distinctUntilChanged { a, b ->
+                a.deviceState == b.deviceState &&
+                    a.progress.toInt() == b.progress.toInt() &&
+                    a.remainingTime == b.remainingTime &&
+                    a.ongoingNotificationEnabled == b.ongoingNotificationEnabled
+            }.collectLatest { status ->
                 val state = status.deviceState
                 val isConnected = repo.isConnected.value
 
@@ -133,6 +144,7 @@ class ConnectedDeviceService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        serviceScope.cancel()
         isStartedAsForeground = false
     }
 }

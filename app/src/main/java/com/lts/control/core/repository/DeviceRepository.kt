@@ -12,6 +12,7 @@ import com.lts.control.core.state.*
 import com.lts.control.core.util.FirmwareVersionUtils
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlin.math.roundToInt
 
 class DeviceRepository private constructor(private val context: Context) {
 
@@ -20,9 +21,7 @@ class DeviceRepository private constructor(private val context: Context) {
     val preferencesRepo = AppPreferencesRepository(context)
     private val notificationManager = LocalNotificationManager(context)
 
-    // Guards
-    val echoGuard = EchoGuard()
-    val speedEchoGuard = SpeedEchoGuard()
+    private val settingSync = SettingSync(scope)
 
     // State
     private val _status = MutableStateFlow(DeviceStatus())
@@ -97,6 +96,7 @@ class DeviceRepository private constructor(private val context: Context) {
                     )
                 }
             }
+            observePersistedSettings()
 
             // Auto-reconnect if device is saved and permissions are present
             val savedAddress = preferencesRepo.lastDeviceAddressFlow.first()
@@ -136,22 +136,7 @@ class DeviceRepository private constructor(private val context: Context) {
                         _availableSsids.value = emptyList()
                         _isScanningSsids.value = false
                         _isConnectingWifi.value = false
-                        _status.update {
-                            it.copy(
-                                hasFilament = false,
-                                progress = 0f,
-                                remainingTime = null,
-                                chipTemperature = null,
-                                wifiSsid = null,
-                                wifiConnected = null,
-                                wifiConnectionResult = null,
-                                isFanOn = false,
-                                usbVoltageMv = null,
-                                powerGood = null,
-                                highCurrent = null,
-                                deviceState = DeviceState.IDLE
-                            )
-                        }
+                        _status.update { it.withoutTelemetry() }
                     }
                     else -> {}
                 }
@@ -163,7 +148,6 @@ class DeviceRepository private constructor(private val context: Context) {
             bleManager.boardName.collect { name ->
                 if (!name.isNullOrEmpty()) {
                     _status.update { it.copy(boardVersion = name) }
-                    persistCurrentSettings()
                 }
             }
         }
@@ -232,143 +216,70 @@ class DeviceRepository private constructor(private val context: Context) {
         val fw = payload.firmwareVersion ?: _status.value.firmwareVersion
         val isOldFw = fw != null && FirmwareVersionUtils.isFirmwareVersionAtMost(fw, 1, 1, 2)
 
-        _status.update { s ->
-            var updated = s.copy(
-                deviceState = newState,
-                progress = payload.progressPercent ?: s.progress,
-                remainingTime = payload.remainingSeconds ?: s.remainingTime,
-                hasFilament = payload.hasFilament ?: s.hasFilament,
-                chipTemperature = smoothedTemp,
-                wifiSsid = payload.wifiSsid ?: s.wifiSsid,
-                wifiConnected = effectiveWifiOk,
-                isFanOn = payload.fanOn ?: s.isFanOn,
-                usbVoltageMv = payload.usbVoltageMv,
-                powerGood = payload.powerGood,
-                firmwareVersion = fw
-            )
-
-            // Echo suppression & Settings updates
-            payload.speedPercent?.let { spd ->
-                if (speedEchoGuard.shouldAcceptRemote(spd)) {
-                    updated = updated.copy(speedPercent = spd)
-                }
-            }
-            payload.jingleStyle?.let { jin ->
-                if (echoGuard.shouldAcceptRemote("jingleStyle")) {
-                    updated = updated.copy(jingleStyle = jin)
-                }
-            }
-            payload.ledBrightness?.let { led ->
-                if (echoGuard.shouldAcceptRemote("ledBrightness")) {
-                    updated = updated.copy(ledBrightness = led)
-                }
-            }
-            payload.fanSpeed?.let { fan ->
-                if (echoGuard.shouldAcceptRemote("fanSpeed")) {
-                    updated = updated.copy(fanSpeed = fan)
-                }
-            }
-            payload.fanAlwaysOn?.let { alw ->
-                if (echoGuard.shouldAcceptRemote("fanAlways")) {
-                    updated = updated.copy(fanAlways = alw)
-                }
-            }
-            payload.useFilamentSensor?.let { use ->
-                if (echoGuard.shouldAcceptRemote("useFilamentSensor")) {
-                    updated = updated.copy(useFilamentSensor = use)
-                }
-            }
-            payload.motorDirection?.let { dir ->
-                if (echoGuard.shouldAcceptRemote("directionReversed")) {
-                    updated = updated.copy(directionReversed = dir == 1)
-                }
-            }
-            payload.motorStrength?.let { pow ->
-                if (echoGuard.shouldAcceptRemote("motorStrength")) {
-                    updated = updated.copy(motorStrength = pow)
-                }
-            }
-            payload.torqueLimit?.let { trq ->
-                if (echoGuard.shouldAcceptRemote("torqueLimit")) {
-                    updated = updated.copy(torqueLimit = trq)
-                }
-            }
-            payload.highSpeed?.let { hs ->
-                if (echoGuard.shouldAcceptRemote("highSpeed")) {
-                    updated = updated.copy(highSpeed = hs)
-                }
-            }
+        val s = _status.value
+        var updated = s.copy(
+            deviceState = newState,
+            progress = payload.progressPercent ?: s.progress,
+            remainingTime = payload.remainingSeconds ?: s.remainingTime,
+            hasFilament = payload.hasFilament ?: s.hasFilament,
+            chipTemperature = smoothedTemp,
+            wifiSsid = payload.wifiSsid ?: s.wifiSsid,
+            wifiConnected = effectiveWifiOk,
+            isFanOn = payload.fanOn ?: s.isFanOn,
+            usbVoltageMv = payload.usbVoltageMv,
+            powerGood = payload.powerGood,
+            firmwareVersion = fw
+        )
+            .remote("speedPercent", payload.speedPercent) { copy(speedPercent = it) }
+            .remote("jingleStyle", payload.jingleStyle) { copy(jingleStyle = it) }
+            .remote("ledBrightness", payload.ledBrightness) { copy(ledBrightness = it) }
+            .remote("fanSpeed", payload.fanSpeed) { copy(fanSpeed = it) }
+            .remote("fanAlways", payload.fanAlwaysOn) { copy(fanAlways = it) }
+            .remote("useFilamentSensor", payload.useFilamentSensor) { copy(useFilamentSensor = it) }
+            .remote("directionReversed", payload.motorDirection?.let { it == 1 }) { copy(directionReversed = it) }
+            .remote("motorStrength", payload.motorStrength) { copy(motorStrength = it) }
+            .remote("torqueLimit", payload.torqueLimit) { copy(torqueLimit = it) }
+            .remote("highSpeed", payload.highSpeed) { copy(highSpeed = it) }
+            .remote("durationAt80", payload.durationAt80) { copy(durationAt80 = it) }
+            .remote("targetWeight", payload.targetWeight) { copy(targetWeight = it) }
+            .remote("servoAngleR", payload.servoAngleR) { copy(servoAngleR = it) }
+            .remote("servoAngleL", payload.servoAngleL) { copy(servoAngleL = it) }
+            .remote("servoStepMm", payload.servoStepMm) { copy(servoStepMm = it) }
+            .remote("servoHome", payload.servoHome?.uppercase()?.takeIf { it == "L" || it == "R" }) { copy(servoHome = it) }
             // Status packets are full snapshots, so a missing key means the firmware has no 2A mode
-            if (payload.highCurrent == null) {
-                updated = updated.copy(highCurrent = null)
-            } else if (echoGuard.shouldAcceptRemote("highCurrent")) {
-                updated = updated.copy(highCurrent = payload.highCurrent)
-            }
-            payload.durationAt80?.let { dur ->
-                if (echoGuard.shouldAcceptRemote("durationAt80")) {
-                    updated = updated.copy(durationAt80 = dur)
-                }
-            }
-            payload.targetWeight?.let { wgt ->
-                if (echoGuard.shouldAcceptRemote("targetWeight")) {
-                    updated = updated.copy(targetWeight = wgt)
-                }
-            }
+        updated = if (payload.highCurrent == null) updated.copy(highCurrent = null)
+        else updated.remote("highCurrent", payload.highCurrent) { copy(highCurrent = it) }
 
-            // Servo
-            payload.servoAngleR?.let { r ->
-                if (echoGuard.shouldAcceptRemote("servoAngleR")) {
-                    updated = updated.copy(servoAngleR = r)
-                }
-            }
-            payload.servoAngleL?.let { l ->
-                if (echoGuard.shouldAcceptRemote("servoAngleL")) {
-                    updated = updated.copy(servoAngleL = l)
-                }
-            }
-            payload.servoStepMm?.let { stp ->
-                if (echoGuard.shouldAcceptRemote("servoStepMm")) {
-                    updated = updated.copy(servoStepMm = stp)
-                }
-            }
-            payload.servoHome?.let { home ->
-                val h = home.uppercase()
-                if ((h == "L" || h == "R") && echoGuard.shouldAcceptRemote("servoHome")) {
-                    updated = updated.copy(servoHome = h)
-                }
-            }
-
-            // Board Variant
-            if (isOldFw) {
-                updated = updated.copy(
-                    boardVariant = BoardVariant.UNKNOWN,
-                    didReceiveBoardVariant = false
-                )
-            } else if (payload.boardVariant != null) {
-                updated = updated.copy(
-                    boardVariant = payload.boardVariant,
-                    didReceiveBoardVariant = true
-                )
-            }
-
-            updated
+        updated = when {
+            isOldFw -> updated.copy(boardVariant = BoardVariant.UNKNOWN, didReceiveBoardVariant = false)
+            else -> updated.remote("boardVariant", payload.boardVariant) { copy(boardVariant = it, didReceiveBoardVariant = true) }
         }
 
-        // Sync Foreground Service
-        syncForegroundService(newState)
-        persistCurrentSettings()
+        _status.value = updated
+
+        if (newState != currentState) syncForegroundService()
     }
 
-    private fun syncForegroundService(state: DeviceState) {
-        if (_status.value.ongoingNotificationEnabled && state != DeviceState.IDLE && _isConnected.value) {
+    /** Applies a device-reported setting unless a local edit of [key] is still awaiting confirmation. */
+    private fun <T : Any> DeviceStatus.remote(key: String, value: T?, apply: DeviceStatus.(T) -> DeviceStatus): DeviceStatus =
+        if (value != null && settingSync.acceptRemote(key, value)) apply(value) else this
+
+    private fun syncForegroundService() {
+        val s = _status.value
+        if (s.ongoingNotificationEnabled && s.deviceState != DeviceState.IDLE && _isConnected.value) {
             val intent = Intent(context, ConnectedDeviceService::class.java)
             ContextCompat.startForegroundService(context, intent)
         }
     }
 
-    private fun persistCurrentSettings() {
+    /** Writes settings to disk only when a persisted field actually changes, not on every status packet. */
+    @OptIn(FlowPreview::class)
+    private fun observePersistedSettings() {
         scope.launch {
-            preferencesRepo.saveDeviceSettings(_status.value)
+            _status.map { it.withoutTelemetry() }
+                .distinctUntilChanged()
+                .debounce(500)
+                .collect { preferencesRepo.saveDeviceSettings(it) }
         }
     }
 
@@ -442,198 +353,86 @@ class DeviceRepository private constructor(private val context: Context) {
         bleManager.disconnect()
     }
 
-    // Settings Setters (all guarded by didInitialSync)
-    fun setSpeedPercent(p: Int) {
-        val clamped = p.coerceIn(50, 100)
-        speedEchoGuard.markLocal(clamped)
-        _status.update { it.copy(speedPercent = clamped) }
-        scope.launch {
-            if (!didInitialSync) return@launch
-            bleManager.sendBytes(Commands.setSpeedPercent(clamped))
-            preferencesRepo.saveDeviceSettings(_status.value)
+    /**
+     * Applies a setting locally right away; the device write is debounced and only the final value is sent
+     * (skipped until the first status packet arrives).
+     */
+    private fun pushSetting(key: String, value: Any, command: ByteArray, apply: DeviceStatus.() -> DeviceStatus) {
+        _status.update { it.apply() }
+        settingSync.submit(key, value) {
+            if (didInitialSync) bleManager.sendBytes(command)
         }
     }
 
-    fun setJingleStyle(style: Int) {
-        val clamped = style.coerceIn(0, 3)
-        echoGuard.markLocal("jingleStyle")
-        _status.update { it.copy(jingleStyle = clamped) }
-        scope.launch {
-            if (!didInitialSync) return@launch
-            bleManager.sendBytes(Commands.setJingleStyle(clamped))
-            preferencesRepo.saveDeviceSettings(_status.value)
-        }
+    fun setSpeedPercent(p: Int) = p.coerceIn(50, 100).let {
+        pushSetting("speedPercent", it, Commands.setSpeedPercent(it)) { copy(speedPercent = it) }
     }
 
-    fun setLedBrightness(brightness: Int) {
-        val clamped = brightness.coerceIn(0, 100)
-        echoGuard.markLocal("ledBrightness")
-        _status.update { it.copy(ledBrightness = clamped) }
-        scope.launch {
-            if (!didInitialSync) return@launch
-            bleManager.sendBytes(Commands.setLed(clamped))
-            preferencesRepo.saveDeviceSettings(_status.value)
-        }
+    fun setJingleStyle(style: Int) = style.coerceIn(0, 3).let {
+        pushSetting("jingleStyle", it, Commands.setJingleStyle(it)) { copy(jingleStyle = it) }
     }
 
-    fun setFanSpeed(speed: Int) {
-        val clamped = speed.coerceIn(10, 100)
-        echoGuard.markLocal("fanSpeed")
-        _status.update { it.copy(fanSpeed = clamped) }
-        scope.launch {
-            if (!didInitialSync) return@launch
-            bleManager.sendBytes(Commands.setFanSpeed(clamped))
-            preferencesRepo.saveDeviceSettings(_status.value)
-        }
+    fun setLedBrightness(brightness: Int) = brightness.coerceIn(0, 100).let {
+        pushSetting("ledBrightness", it, Commands.setLed(it)) { copy(ledBrightness = it) }
     }
 
-    fun setFanAlwaysOn(always: Boolean) {
-        echoGuard.markLocal("fanAlways")
-        _status.update { it.copy(fanAlways = always) }
-        scope.launch {
-            if (!didInitialSync) return@launch
-            bleManager.sendBytes(Commands.setFanAlwaysOn(always))
-            preferencesRepo.saveDeviceSettings(_status.value)
-        }
+    fun setFanSpeed(speed: Int) = speed.coerceIn(10, 100).let {
+        pushSetting("fanSpeed", it, Commands.setFanSpeed(it)) { copy(fanSpeed = it) }
     }
 
-    fun setUseFilamentSensor(use: Boolean) {
-        echoGuard.markLocal("useFilamentSensor")
-        _status.update { it.copy(useFilamentSensor = use) }
-        scope.launch {
-            if (!didInitialSync) return@launch
-            bleManager.sendBytes(Commands.setUseFilamentSensor(use))
-            preferencesRepo.saveDeviceSettings(_status.value)
-        }
+    fun setFanAlwaysOn(always: Boolean) =
+        pushSetting("fanAlways", always, Commands.setFanAlwaysOn(always)) { copy(fanAlways = always) }
+
+    fun setUseFilamentSensor(use: Boolean) =
+        pushSetting("useFilamentSensor", use, Commands.setUseFilamentSensor(use)) { copy(useFilamentSensor = use) }
+
+    fun setDirectionReversed(rev: Boolean) =
+        pushSetting("directionReversed", rev, Commands.setDirection(if (rev) 1 else 0)) { copy(directionReversed = rev) }
+
+    fun setMotorStrength(str: Int) = str.coerceIn(80, 120).let {
+        pushSetting("motorStrength", it, Commands.setMotorStrength(it)) { copy(motorStrength = it) }
     }
 
-    fun setDirectionReversed(rev: Boolean) {
-        echoGuard.markLocal("directionReversed")
-        _status.update { it.copy(directionReversed = rev) }
-        scope.launch {
-            if (!didInitialSync) return@launch
-            bleManager.sendBytes(Commands.setDirection(if (rev) 1 else 0))
-            preferencesRepo.saveDeviceSettings(_status.value)
-        }
+    fun setTorqueLimit(trq: Int) = trq.coerceIn(0, 3).let {
+        pushSetting("torqueLimit", it, Commands.setTorqueLimit(it)) { copy(torqueLimit = it) }
     }
 
-    fun setMotorStrength(str: Int) {
-        val clamped = str.coerceIn(80, 120)
-        echoGuard.markLocal("motorStrength")
-        _status.update { it.copy(motorStrength = clamped) }
-        scope.launch {
-            if (!didInitialSync) return@launch
-            bleManager.sendBytes(Commands.setMotorStrength(clamped))
-            preferencesRepo.saveDeviceSettings(_status.value)
-        }
+    fun setHighSpeed(hs: Boolean) =
+        pushSetting("highSpeed", hs, Commands.setHighSpeedMode(hs)) { copy(highSpeed = hs) }
+
+    fun setHighCurrent(on: Boolean) =
+        pushSetting("highCurrent", on, Commands.setHighCurrentMode(on)) { copy(highCurrent = on) }
+
+    // Firmware accepts 10..20000 s
+    fun setDurationAt80(sec: Int) = sec.coerceIn(10, 20000).let {
+        pushSetting("durationAt80", it, Commands.setDurationAt80(it)) { copy(durationAt80 = it) }
     }
 
-    fun setTorqueLimit(trq: Int) {
-        val clamped = trq.coerceIn(0, 3)
-        echoGuard.markLocal("torqueLimit")
-        _status.update { it.copy(torqueLimit = clamped) }
-        scope.launch {
-            if (!didInitialSync) return@launch
-            bleManager.sendBytes(Commands.setTorqueLimit(clamped))
-            preferencesRepo.saveDeviceSettings(_status.value)
-        }
+    fun setTargetWeight(wgt: Int) = wgt.coerceIn(0, 3).let {
+        pushSetting("targetWeight", it, Commands.setTargetWeight(it)) { copy(targetWeight = it) }
     }
 
-    fun setHighSpeed(hs: Boolean) {
-        echoGuard.markLocal("highSpeed")
-        _status.update { it.copy(highSpeed = hs) }
-        scope.launch {
-            if (!didInitialSync) return@launch
-            bleManager.sendBytes(Commands.setHighSpeedMode(hs))
-            preferencesRepo.saveDeviceSettings(_status.value)
+    fun setBoardVariant(variant: BoardVariant) =
+        pushSetting("boardVariant", variant, Commands.setBoardVariant(variant)) {
+            copy(boardVariant = variant, didReceiveBoardVariant = true)
         }
-    }
-
-    fun setHighCurrent(on: Boolean) {
-        echoGuard.markLocal("highCurrent")
-        _status.update { it.copy(highCurrent = on) }
-        scope.launch {
-            if (!didInitialSync) return@launch
-            bleManager.sendBytes(Commands.setHighCurrentMode(on))
-        }
-    }
-
-    fun setDurationAt80(sec: Int) {
-        echoGuard.markLocal("durationAt80")
-        _status.update { it.copy(durationAt80 = sec) }
-        scope.launch {
-            if (!didInitialSync) return@launch
-            bleManager.sendBytes(Commands.setDurationAt80(sec))
-            preferencesRepo.saveDeviceSettings(_status.value)
-        }
-    }
-
-    fun setTargetWeight(wgt: Int) {
-        val clamped = wgt.coerceIn(0, 3)
-        echoGuard.markLocal("targetWeight")
-        _status.update { it.copy(targetWeight = clamped) }
-        scope.launch {
-            if (!didInitialSync) return@launch
-            bleManager.sendBytes(Commands.setTargetWeight(clamped))
-            preferencesRepo.saveDeviceSettings(_status.value)
-        }
-    }
-
-    // Board Variant
-    fun setBoardVariant(variant: BoardVariant) {
-        echoGuard.markLocal("boardVariant")
-        _status.update { it.copy(boardVariant = variant, didReceiveBoardVariant = true) }
-        scope.launch {
-            if (!didInitialSync) return@launch
-            bleManager.sendBytes(Commands.setBoardVariant(variant))
-            preferencesRepo.saveDeviceSettings(_status.value)
-        }
-    }
-
     // Servo
-    fun setServoAngleR(angle: Int) {
-        val clamped = angle.coerceIn(0, 180)
-        echoGuard.markLocal("servoAngleR")
-        _status.update { it.copy(servoAngleR = clamped) }
-        scope.launch {
-            if (!didInitialSync) return@launch
-            bleManager.sendBytes(Commands.setServoAngleR(clamped))
-            preferencesRepo.saveDeviceSettings(_status.value)
-        }
+    fun setServoAngleR(angle: Int) = angle.coerceIn(0, 180).let {
+        pushSetting("servoAngleR", it, Commands.setServoAngleR(it)) { copy(servoAngleR = it) }
     }
 
-    fun setServoAngleL(angle: Int) {
-        val clamped = angle.coerceIn(0, 180)
-        echoGuard.markLocal("servoAngleL")
-        _status.update { it.copy(servoAngleL = clamped) }
-        scope.launch {
-            if (!didInitialSync) return@launch
-            bleManager.sendBytes(Commands.setServoAngleL(clamped))
-            preferencesRepo.saveDeviceSettings(_status.value)
-        }
+    fun setServoAngleL(angle: Int) = angle.coerceIn(0, 180).let {
+        pushSetting("servoAngleL", it, Commands.setServoAngleL(it)) { copy(servoAngleL = it) }
     }
 
-    fun setServoStepMm(mm: Double) {
-        val clamped = mm.coerceIn(0.05, 20.0)
-        echoGuard.markLocal("servoStepMm")
-        _status.update { it.copy(servoStepMm = clamped) }
-        scope.launch {
-            if (!didInitialSync) return@launch
-            bleManager.sendBytes(Commands.setServoStepMm(clamped))
-            preferencesRepo.saveDeviceSettings(_status.value)
-        }
+    // Rounded so repeated ±0.01 steps don't accumulate float error and can match the device's echo
+    fun setServoStepMm(mm: Double) = (mm.coerceIn(0.05, 20.0) * 100).roundToInt().div(100.0).let {
+        pushSetting("servoStepMm", it, Commands.setServoStepMm(it)) { copy(servoStepMm = it) }
     }
-
     fun setServoHome(side: String) {
         val s = side.uppercase()
         if (s != "L" && s != "R") return
-        echoGuard.markLocal("servoHome")
-        _status.update { it.copy(servoHome = s) }
-        scope.launch {
-            if (!didInitialSync) return@launch
-            bleManager.sendBytes(Commands.setServoHome(s))
-            preferencesRepo.saveDeviceSettings(_status.value)
-        }
+        pushSetting("servoHome", s, Commands.setServoHome(s)) { copy(servoHome = s) }
     }
 
     fun servoGoto(target: String) {
@@ -657,5 +456,6 @@ class DeviceRepository private constructor(private val context: Context) {
     fun setOngoingNotificationEnabled(enabled: Boolean) {
         _status.update { it.copy(ongoingNotificationEnabled = enabled) }
         scope.launch { preferencesRepo.setOngoingNotificationEnabled(enabled) }
+        syncForegroundService()
     }
 }
