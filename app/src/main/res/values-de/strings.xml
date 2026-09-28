@@ -1,0 +1,258 @@
+<resources>
+    <string name="app_name">LTS Control</string>
+
+    <!-- Gemeinsam / Navigation -->
+    <string name="title_home">LTS Respooler</string>
+    <string name="title_settings">Einstellungen</string>
+    <string name="title_connection">Verbindung</string>
+    <string name="title_more">Mehr</string>
+    <string name="nav_control">Steuerung</string>
+    <string name="nav_settings">Einstellungen</string>
+    <string name="nav_connection">Verbindung</string>
+    <string name="nav_more">Mehr</string>
+    <string name="more_placeholder">Mehr (About) – kommt später</string>
+
+    <!-- Steuerung -->
+    <string name="home_state_idle">Leerlauf</string>
+    <string name="home_state_running">Läuft...</string>
+    <string name="home_state_paused">Pausiert</string>
+    <string name="home_state_auto_stop">Auto-Stopp</string>
+    <string name="home_state_updating">Wird aktualisiert...</string>
+    <string name="home_state_done">Fertig</string>
+    <string name="home_state_error">Fehler</string>
+    <string name="pill_connection">Verbindung</string>
+    <string name="pill_temperature">Temperatur</string>
+    <string name="pill_filament">Filament</string>
+    <string name="pill_fan">Lüfter</string>
+    <string name="common_connected">Verbunden</string>
+    <string name="common_disconnected">Getrennt</string>
+    <string name="filament_detected">Erkannt</string>
+    <string name="filament_not_detected">Nicht erkannt</string>
+    <string name="value_none">—</string>
+    <string name="temp_unknown">–</string>
+    <string name="temp_celsius">%1$d °C</string>
+    <string name="action_start">Start</string>
+    <string name="action_pause">Pause</string>
+    <string name="action_stop">Stopp</string>
+    <string name="percent_value">%1$d %%</string>
+
+    <!-- Einstellungen -->
+    <string name="set_status">Status</string>
+    <string name="state_idle">Bereit</string>
+    <string name="state_running">Läuft</string>
+    <string name="state_paused">Pausiert</string>
+    <string name="state_auto_stop">Auto-Stopp</string>
+    <string name="state_updating">Wird aktualisiert…</string>
+    <string name="state_done">Fertig</string>
+    <string name="state_error">Fehler</string>
+    <string name="set_section_configuration">Konfiguration</string>
+    <string name="set_completion_sound">Ton bei Fertigstellung</string>
+    <string name="jingle_off">Aus</string>
+    <string name="jingle_simple">Einfach</string>
+    <string name="jingle_glissando">Glissando</string>
+    <string name="jingle_star_wars">Star Wars</string>
+    <string name="set_led_brightness">LED Helligkeit</string>
+    <string name="set_respool_amount">Respool-Menge</string>
+    <string name="set_use_filament_sensor">Filament Sensor nutzen</string>
+    <string name="set_footer_filament_sensor">Wenn der Sensor deaktiviert ist, wird nicht auf den Verlust von Filament reagiert.</string>
+    <string name="set_section_motor">Motor</string>
+    <string name="set_reverse_direction">Richtung umkehren</string>
+    <string name="set_strength">Stärke</string>
+    <string name="set_auto_stop_sensitivity">Auto-Stopp Empfindlichkeit</string>
+    <string name="sensitivity_off">Aus</string>
+    <string name="sensitivity_low">Gering</string>
+    <string name="sensitivity_medium">Mittel</string>
+    <string name="sensitivity_high">Hoch</string>
+    <string name="set_footer_auto_stop">Der Auto-Stopp stoppt den Motor bei Widerstand.</string>
+    <string name="set_high_speed">High-Speed</string>
+    <string name="set_footer_high_speed">Der High-Speed Modus erhöht die Geschwindigkeit des Motors. Auto-Stopp ist dabei nicht verfügbar.</string>
+    <string name="set_motor_hardware">Motor-Hardwareversion</string>
+    <string name="motor_standard">Standard</string>
+    <string name="motor_alpha">Alpha</string>
+    <string name="motor_standard_full">Standard 17HS15-1504S 1,5 A</string>
+    <string name="motor_alpha_full">Alpha 17HS19-2004S1 2,0 A</string>
+    <string name="set_footer_motor_hardware" formatted="false">Wähle den im Respooler verbauten Motor. Alpha erhöht den Strom bei 120 % Stärke von 1,4 A auf 1,7 A. Achtung: Alpha mit dem Standard-Motor (1,5 A) kann den Motor überhitzen und früher durchbrennen lassen.</string>
+    <string name="set_section_fan">Lüfter</string>
+    <string name="set_speed">Geschwindigkeit</string>
+    <string name="set_fan_always_on">Lüfter immer an</string>
+    <string name="set_temperature_unit">Temperatur-Einheit</string>
+    <string name="unit_celsius">Celsius</string>
+    <string name="unit_fahrenheit">Fahrenheit</string>
+    <string name="set_footer_fan">Der Lüfter schaltet sich standardmäßig 10 Sekunden nach stoppen des Respoolers aus.</string>
+    <string name="set_section_calibration">Kalibrierung</string>
+    <string name="set_duration">Dauer</string>
+    <string name="duration_value">Dauer: %1$dm %2$ds</string>
+    <string name="set_footer_calibration" formatted="false">Für genauere Zeitangaben bzw. Respool-Mengen die benötigte Dauer für eine 1 kg Spule bei 80 % Geschwindigkeit messen und hier anpassen. Beim Eintragen den High-Speed-Modus so einstellen wie während der Messung.</string>
+    <string name="set_section_app">App</string>
+    <string name="set_notifications">Benachrichtigungen</string>
+    <string name="set_footer_notifications">Erhalte Push-Benachrichtigungen, wenn der Respooler stoppt oder fertig ist.</string>
+
+    <!-- Respool-Menge -->
+    <string name="respool_title">Respool-Menge</string>
+    <string name="common_back">Zurück</string>
+    <string name="common_cancel">Abbrechen</string>
+    <string name="respool_entire_spool">Gesamte Spule</string>
+    <string name="weight_1_0kg">1,0 kg</string>
+    <string name="weight_0_5kg">0,5 kg</string>
+    <string name="weight_0_25kg">0,25 kg</string>
+    <string name="respool_footer_entire">Der Respooler stoppt anhand des Filament Sensors, sobald die obere Spule leer ist. Empfohlen, wenn Filament zwischen zwei 1 kg Spulen übertragen wird.</string>
+    <string name="respool_footer_fixed">Der Respooler stoppt anhand der übertragenen Menge. Empfohlen, wenn die obere Spule größer als 1 kg ist.\n\nDas Stoppen funktioniert auf Basis des dynamisch berechneten Fortschritts. Die Genauigkeit kann je nach Material variieren.</string>
+
+    <!-- Verbindung -->
+    <string name="conn_title">Verbindung</string>
+    <string name="conn_scan_networks">Netzwerk-Scan</string>
+    <string name="conn_bluetooth">Bluetooth</string>
+    <string name="conn_wlan">WLAN</string>
+    <string name="conn_error_short">Fehler!</string>
+    <string name="conn_wlan_hint">Für die WLAN-Verbindung hier nach verfügbaren Netzwerken suchen und das Passwort eingeben. Funktioniert nur mit 2,4 GHz Netzwerken.</string>
+    <string name="conn_network">Netzwerk</string>
+    <string name="conn_select_count">Auswählen (%1$d)</string>
+    <string name="conn_password">Passwort</string>
+    <string name="conn_connecting">Verbinden…</string>
+    <string name="conn_send_credentials">Zugangsdaten senden</string>
+    <string name="conn_bluetooth_hint">Bei Verbindungsproblemen das gespeicherte Gerät entfernen und die Verbindung neu aufbauen.</string>
+    <string name="conn_connect">Verbindung herstellen</string>
+    <string name="conn_forget_device">Gespeichertes Gerät entfernen</string>
+
+    <!-- Sprachauswahl -->
+    <string name="set_language">Sprache</string>
+    <string name="language_system">Systemsprache</string>
+    <string name="language_english">English</string>
+    <string name="language_german">Deutsch</string>
+    <string name="language_dialog_title">Sprache wählen</string>
+
+    <!-- Zusätzliche Pillen-Texte -->
+    <string name="pill_fan_not_supported">Nicht unterstützt</string>
+    <string name="pill_fan_on">An: %1$d %%</string>
+    <string name="pill_fan_off">Aus</string>
+    <string name="pill_on">An</string>
+    <string name="pill_amount">Menge</string>
+    <string name="pill_chip_temp_c">Chip: %1$d °C</string>
+    <string name="pill_chip_temp_f">Chip: %1$d °F</string>
+
+    <!-- Variante -->
+    <string name="set_variant">Variante</string>
+    <string name="variant_title">Variante wählen</string>
+    <string name="variant_v4">Respooler V4</string>
+    <string name="variant_pro">Respooler Pro</string>
+    <string name="variant_footer_selection">Wähle die Variante deines Respoolers. Abhängig davon werden dir die verfügbaren Einstellungen angezeigt. Die Auswahl wird auf dem Board gespeichert und kann jederzeit in den Einstellungen geändert werden.</string>
+    <string name="variant_footer_settings">Wähle die Variante deines Respoolers. Abhängig davon werden dir die verfügbaren Einstellungen angezeigt. Die Auswahl wird auf dem Board gespeichert.</string>
+    <string name="action_save">Speichern</string>
+
+    <!-- Servo -->
+    <string name="set_section_servo">Servo</string>
+    <string name="set_calibrate_end_positions">Endpositionen kalibrieren</string>
+    <string name="servo_step_width">Schrittweite: %1$.2f mm</string>
+    <string name="servo_footer">Wähle aus, auf welcher Seite die Startposition der Filamentführung ist.</string>
+    <string name="servo_side_left">Linke Seite</string>
+    <string name="servo_side_right">Rechte Seite</string>
+    <string name="servo_angle_label">Winkel: %1$d°</string>
+    <string name="servo_calibration_footer">Stelle die Endanschläge links und rechts so ein, dass die Filamentführung gerade so die Seiten berührt.</string>
+    <string name="servo_calibration_disabled_hint">Die Kalibrierung ist nur verfügbar, wenn der Motor gestoppt und bereit ist.</string>
+
+    <!-- Laufende Benachrichtigung -->
+    <string name="set_ongoing_notification">Laufende Benachrichtigung</string>
+    <string name="set_footer_ongoing_notification">Zeige eine dauerhafte Benachrichtigung mit Live-Fortschritt während des Spulens im Hintergrund.</string>
+
+    <!-- Verbindung & Geräteauswahl -->
+    <string name="conn_select_device">Gerät auswählen</string>
+    <string name="conn_searching_devices">Suche nach Geräten…</string>
+    <string name="conn_no_devices">Keine Geräte gefunden</string>
+    <string name="conn_permission_needed">Bluetooth-Berechtigungen zum Verbinden erforderlich</string>
+    <string name="conn_permission_rationale">Bluetooth-Berechtigungen sind erforderlich, um nach dem Respooler zu suchen und sich zu verbinden.</string>
+    <string name="conn_grant_permission">Berechtigung erteilen</string>
+    <string name="conn_open_settings">Einstellungen öffnen</string>
+    <string name="conn_bluetooth_disabled">Bluetooth ist ausgeschaltet</string>
+    <string name="conn_enable_bluetooth">Bluetooth aktivieren</string>
+    <string name="conn_no_networks_found">Keine Netzwerke gefunden</string>
+
+    <!-- Über / OTA / Impressum -->
+    <string name="about_app_version">App Version: %1$s</string>
+    <string name="about_board_version">Board Version: %1$s</string>
+    <string name="about_board_update">Board Update</string>
+    <string name="about_updates_not_supported">Updates nicht unterstützt</string>
+    <string name="about_board_not_connected">Board nicht verbunden</string>
+    <string name="about_firmware_updating">Firmware wird aktualisiert...</string>
+    <string name="about_firmware_up_to_date">Firmware ist aktuell</string>
+    <string name="about_update_failed">Update fehlgeschlagen!</string>
+    <string name="about_update_available">Update verfügbar (%1$s → %2$s)</string>
+    <string name="about_btn_not_supported">Nicht unterstützt</string>
+    <string name="about_btn_no_wifi">Keine WLAN-Verbindung</string>
+    <string name="about_btn_update">Firmware aktualisieren</string>
+    <string name="about_instructions">Hinweise</string>
+    <string name="about_connection_settings">Verbindungseinstellungen</string>
+    <string name="about_power_title">Stromversorgung</string>
+    <string name="about_usb_voltage">USB-C Spannung</string>
+    <string name="about_voltage_value">%1$.1f V</string>
+    <string name="about_pd_status">USB-C Power Delivery</string>
+    <string name="about_pd_ok">Ausgehandelt</string>
+    <string name="about_pd_not_ok">Nicht ausgehandelt</string>
+    <string name="about_power_source">Stromquelle</string>
+    <string name="about_power_dc_jack">Hohlbuchse</string>
+    <string name="about_power_hint_usb">Der Motor benötigt 12 V.</string>
+    <string name="about_power_hint_dc">Die Spannung an der Hohlbuchse kann das Board nicht messen. Der Motor benötigt 12 V.</string>
+    <string name="about_legal_footer">© 2025, LTS Design, Heiligenbornstraße 23, 01219 Dresden, Deutschland, info@lts-design.com</string>
+    <string name="ota_alert_success_title">Update erfolgreich!</string>
+    <string name="ota_alert_success_message">Das OTA-Update war erfolgreich.</string>
+    <string name="ota_alert_failure_title">Update fehlgeschlagen!</string>
+    <string name="ota_alert_failure_message">Das OTA-Update ist fehlgeschlagen. Stelle sicher, dass das verbundene WLAN über eine funktionierende Internetverbindung verfügt.</string>
+    <string name="ota_alert_show_changes">Änderungen anzeigen</string>
+    <string name="common_ok">OK</string>
+    <string name="common_close">Schließen</string>
+
+    <!-- Changelog -->
+    <string name="changelog_title">Changelog</string>
+    <string name="changelog_loading">Changelog wird geladen…</string>
+    <string name="changelog_error_title">Konnte nicht geladen werden.</string>
+
+    <!-- Hinweise -->
+    <string name="instructions_title">Hinweise</string>
+    <string name="instr_connect_title">Verbindung herstellen</string>
+    <string name="instr_connect_desc">Achte darauf, dass das Respooler Board eingeschaltet ist und die aktuelle Firmware installiert wurde.</string>
+    <string name="instr_restart_connection">Verbindung erneut starten</string>
+    <string name="instr_firmware_title">Board Firmware</string>
+    <string name="instr_firmware_desc">Für OTA-Updates muss das Board mit dem lokalen WLAN verbunden sein. Alternativ dazu kann auch der Web Flasher auf der LTS Design Webseite genutzt werden.</string>
+    <string name="instr_motor_title">Motorstärke</string>
+    <string name="instr_motor_desc">Passe die Motorstärke an, wenn der Motor heiß wird oder vibriert. Auch ein schwaches Netzteil kann die Stärke beeinflussen.</string>
+    <string name="instr_autostop_title">Auto-Stopp</string>
+    <string name="instr_autostop_desc">Die Empfindlichkeit hängt vom Netzteil ab. Wenn der Motor zu oft stoppt, verringere die Empfindlichkeit in den Einstellungen.</string>
+    <string name="instr_github_title">GitHub</string>
+    <string name="instr_github_desc">Der Quellcode sowie alle weiteren Dateien sind Open Source und können auf GitHub heruntergeladen werden: https://github.com/LukasT03/LTS-Respooler</string>
+    <string name="instr_feedback_title">Feedback</string>
+    <string name="instr_feedback_desc">Sende bei Fragen, Problemen oder Anregungen gerne eine E-Mail an info@lts-design.com.</string>
+
+    <!-- Upgrade-Code -->
+    <string name="upgrade_code_title">Neues Control Board</string>
+    <string name="upgrade_no_updates_title">Keine Updates mehr</string>
+    <string name="upgrade_no_updates_desc">Da das V3 Control Board nur in begrenzter Stückzahl verkauft wurde und nicht alle Funktionen unterstützt, wird es dafür keine weiteren Firmware-Updates mehr geben.\n\nAlle momentan vorhandenen Funktionen bleiben bestehen.</string>
+    <string name="upgrade_discount_title">Rabatt Code</string>
+    <string name="upgrade_discount_desc">Wenn du kostenlos das neue Control Board V4 erhalten möchtest, kannst du den folgenden Code dafür im Store anwenden, sobald es verfügbar ist.</string>
+    <string name="upgrade_code_copied">Kopiert!</string>
+    <string name="upgrade_copy_code">Code kopieren</string>
+
+    <!-- Benachrichtigungen -->
+    <string name="notif_done_title">Respooler fertig!</string>
+    <string name="notif_done_body">Der Spulvorgang wurde erfolgreich fertiggestellt.</string>
+    <string name="notif_autostop_title">Fehler: Auto-Stopp!</string>
+    <string name="notif_autostop_body">Der Respooler hat automatisch angehalten. Überprüfe, ob der Motor blockiert ist.</string>
+    <string name="notif_action_start">Respooler starten</string>
+    <string name="notif_action_pause">Pause</string>
+    <string name="notif_action_stop">Stopp</string>
+    <string name="notif_channel_alerts">Respooler Benachrichtigungen</string>
+    <string name="notif_channel_progress">Respooler Live-Fortschritt</string>
+
+    <!-- Splash / Onboarding -->
+    <string name="splash_welcome">Willkommen bei LTS Control</string>
+    <string name="splash_feature_function_title">Funktion</string>
+    <string name="splash_feature_function_desc">Um das Respooler Board mit der App zu steuern, musst du es zuerst mit deinem Gerät verbinden.</string>
+    <string name="splash_feature_connect_title">Verbinden</string>
+    <string name="splash_feature_connect_desc">Stelle sicher, dass das Board eingeschaltet ist und starte die Kopplung über den Button unten.</string>
+    <string name="splash_connect_cta">Respooler verbinden</string>
+
+    <!-- Board-Typen -->
+    <string name="board_type_v3">Control Board V3</string>
+    <string name="board_type_v4">Control Board</string>
+    <string name="board_type_v4_pro">Control Board (Pro)</string>
+    <string name="board_type_db">Driver Board</string>
+    <string name="board_type_db_pro">Driver Board (Pro)</string>
+</resources>

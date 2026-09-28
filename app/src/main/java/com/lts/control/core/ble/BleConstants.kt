@@ -10,6 +10,9 @@ object BleConstants {
     val CHARACTERISTIC_UUID: UUID = UUID.fromString("7CB2F1B4-7E3F-43D2-8C92-DF58C9A7B1A8")
 
     const val ADVERTISED_NAME = "esp32 PCB"
+    val KNOWN_NAMES = listOf("CtrBoard V3", "CtrBoard V4", "LTS CB", "LTS DB", "esp32 PCB")
+    val CCCD_UUID: UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
+    const val MANUFACTURER_ID = 0xFFFF
 
     // BLE timeouts & intervals
     const val SCAN_MS: Long = 12_000
