@@ -36,19 +36,54 @@ import com.lts.control.core.ble.model.BoardVariant
 import com.lts.control.core.ble.model.DeviceState
 import com.lts.control.core.ble.model.labelRes
 import com.lts.control.ui.theme.*
+import androidx.annotation.StringRes
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
 import java.util.Locale
+import kotlin.math.roundToInt
 
+enum class SettingsSection { CONFIGURATION, FAN }
+
+class SettingsNavigation(
+    val onOpenRespoolAmount: () -> Unit = {},
+    val onOpenBoardVariant: () -> Unit = {},
+    val onOpenServoCalibration: () -> Unit = {}
+)
+
+/** Target weight (firmware WGT) to label, shared by Settings and the home screen pill. */
+internal val respoolAmountOptions = listOf(
+    0 to R.string.respool_entire_spool,
+    1 to R.string.weight_1_0kg,
+    2 to R.string.weight_0_5kg,
+    3 to R.string.weight_0_25kg
+)
+
+@StringRes
+internal fun respoolAmountLabelRes(targetWeight: Int): Int =
+    respoolAmountOptions.firstOrNull { it.first == targetWeight }?.second ?: R.string.respool_entire_spool
+
+/** [focusRequest] scrolls to that section once shown, then resets to null. */
 @Composable
 fun SettingsScreen(
     vm: BleViewModel,
-    onOpenRespoolAmount: () -> Unit,
-    onOpenBoardVariant: () -> Unit = {},
-    onOpenServoCalibration: () -> Unit = {}
+    nav: SettingsNavigation,
+    focusRequest: MutableState<SettingsSection?> = remember { mutableStateOf(null) }
 ) {
     val status by vm.status.collectAsState()
     val isConnected by vm.isConnected.collectAsState()
     val deviceState = status.deviceState
     val context = LocalContext.current
+    val scrollState = rememberScrollState()
+    val sectionOffsets = remember { mutableMapOf<SettingsSection, Int>() }
+    fun Modifier.section(section: SettingsSection) =
+        onGloballyPositioned { sectionOffsets[section] = it.positionInParent().y.roundToInt() }
+
+    LaunchedEffect(focusRequest.value) {
+        val section = focusRequest.value ?: return@LaunchedEffect
+        withFrameNanos { } // let the first layout record section offsets
+        sectionOffsets[section]?.let { scrollState.animateScrollTo(it) }
+        focusRequest.value = null
+    }
 
     val requestNotifLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
@@ -71,7 +106,7 @@ fun SettingsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
             .background(MaterialTheme.colorScheme.background)
             .padding(bottom = 24.dp)
     ) {
@@ -121,7 +156,7 @@ fun SettingsScreen(
         }
 
         /* ------------------------------ Konfiguration ------------------------------ */
-        SectionHeader(stringResource(R.string.set_section_configuration))
+        SectionHeader(stringResource(R.string.set_section_configuration), Modifier.section(SettingsSection.CONFIGURATION))
         SettingsCard {
             // Jingle Picker
             val jingleNames = listOf(
@@ -148,16 +183,11 @@ fun SettingsScreen(
             )
 
             // Respool Amount
-            val respoolLabel = when (status.targetWeight) {
-                1 -> stringResource(R.string.weight_1_0kg)
-                2 -> stringResource(R.string.weight_0_5kg)
-                3 -> stringResource(R.string.weight_0_25kg)
-                else -> stringResource(R.string.respool_entire_spool)
-            }
+            val respoolLabel = stringResource(respoolAmountLabelRes(status.targetWeight))
             NavigationRow(
                 title = stringResource(R.string.set_respool_amount),
                 subtitle = respoolLabel,
-                onClick = onOpenRespoolAmount
+                onClick = nav.onOpenRespoolAmount
             )
 
             // Board Variant row (only when STD or PRO per §5.2)
@@ -170,7 +200,7 @@ fun SettingsScreen(
                 NavigationRow(
                     title = stringResource(R.string.set_variant),
                     subtitle = variantLabel,
-                    onClick = onOpenBoardVariant
+                    onClick = nav.onOpenBoardVariant
                 )
             }
 
@@ -251,7 +281,7 @@ fun SettingsScreen(
                 NavigationRow(
                     title = stringResource(R.string.set_calibrate_end_positions),
                     subtitle = "",
-                    onClick = onOpenServoCalibration
+                    onClick = nav.onOpenServoCalibration
                 )
 
                 // Stepper: 0.50..4.00 mm, step 0.01
@@ -283,7 +313,7 @@ fun SettingsScreen(
         }
 
         /* ------------------------------ Lüfter ------------------------------ */
-        SectionHeader(stringResource(R.string.set_section_fan))
+        SectionHeader(stringResource(R.string.set_section_fan), Modifier.section(SettingsSection.FAN))
         SettingsCard {
             StepperRow(
                 title = stringResource(R.string.set_speed),
@@ -392,13 +422,9 @@ fun RespoolAmountScreen(
 
             SectionHeaderSpacer()
             SettingsCard {
-                listOf(
-                    1 to stringResource(R.string.weight_1_0kg),
-                    2 to stringResource(R.string.weight_0_5kg),
-                    3 to stringResource(R.string.weight_0_25kg)
-                ).forEach { (tag, label) ->
+                respoolAmountOptions.drop(1).forEach { (tag, labelRes) ->
                     SingleChoiceRow(
-                        title = label,
+                        title = stringResource(labelRes),
                         selected = current == tag,
                         onClick = { if (current != tag) vm.setTargetWeight(tag) }
                     )
@@ -413,10 +439,10 @@ fun RespoolAmountScreen(
 /*                                   UI Bits                                  */
 /* -------------------------------------------------------------------------- */
 
-@Composable private fun SectionHeader(text: String) {
+@Composable private fun SectionHeader(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
-        modifier = Modifier.padding(start = 16.dp, top = 18.dp, bottom = 8.dp),
+        modifier = modifier.padding(start = 16.dp, top = 18.dp, bottom = 8.dp),
         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium),
         color = MaterialTheme.colorScheme.primary
     )

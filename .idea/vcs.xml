@@ -2,5 +2,8 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/LTS-Control-Web" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/LTS-Control-iOS" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/LTS-Respooler-Firmware" vcs="Git" />
   </component>
 </project>

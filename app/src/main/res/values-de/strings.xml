@@ -82,7 +82,7 @@
     <string name="set_section_calibration">Kalibrierung</string>
     <string name="set_duration">Dauer</string>
     <string name="duration_value">Dauer: %1$dm %2$ds</string>
-    <string name="set_footer_calibration" formatted="false">Für genauere Zeitangaben bzw. Respool-Mengen die benötigte Dauer für eine 1 kg Spule bei 80 % Geschwindigkeit messen und hier anpassen.</string>
+    <string name="set_footer_calibration" formatted="false">Für genauere Zeitangaben bzw. Respool-Mengen die benötigte Dauer für eine 1 kg Spule bei 80 % Geschwindigkeit messen und hier anpassen. Beim Eintragen den High-Speed-Modus so einstellen wie während der Messung.</string>
     <string name="set_section_app">App</string>
     <string name="set_notifications">Benachrichtigungen</string>
     <string name="set_footer_notifications">Erhalte Push-Benachrichtigungen, wenn der Respooler stoppt oder fertig ist.</string>
@@ -125,6 +125,8 @@
     <string name="pill_fan_not_supported">Nicht unterstützt</string>
     <string name="pill_fan_on">An: %1$d %%</string>
     <string name="pill_fan_off">Aus</string>
+    <string name="pill_on">An</string>
+    <string name="pill_amount">Menge</string>
     <string name="pill_chip_temp_c">Chip: %1$d °C</string>
     <string name="pill_chip_temp_f">Chip: %1$d °F</string>
 

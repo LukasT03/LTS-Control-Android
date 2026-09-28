@@ -82,7 +82,7 @@
     <string name="set_section_calibration">Calibration</string>
     <string name="set_duration">Duration</string>
     <string name="duration_value">Duration: %1$dm %2$ds</string>
-    <string name="set_footer_calibration" formatted="false">For more accurate time estimates and respool amounts, measure how long a 1 kg spool takes at 80 % speed and enter it here.</string>
+    <string name="set_footer_calibration" formatted="false">For more accurate time estimates and respool amounts, measure how long a 1 kg spool takes at 80 % speed and enter it here. Enter it with high-speed mode set the same way it was during the measurement.</string>
     <string name="set_section_app">App</string>
     <string name="set_notifications">Notifications</string>
     <string name="set_footer_notifications">Get push notifications when the respooler stops or finishes.</string>
@@ -125,6 +125,8 @@
     <string name="pill_fan_not_supported">Not supported</string>
     <string name="pill_fan_on">On: %1$d %%</string>
     <string name="pill_fan_off">Off</string>
+    <string name="pill_on">On</string>
+    <string name="pill_amount">Amount</string>
     <string name="pill_chip_temp_c">Chip: %1$d °C</string>
     <string name="pill_chip_temp_f">Chip: %1$d °F</string>
 

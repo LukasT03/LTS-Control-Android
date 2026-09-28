@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -44,9 +45,14 @@ import kotlin.math.abs
 import kotlin.math.min
 import kotlin.math.roundToInt
 
+class HomeNavigation(
+    val onOpenConnection: () -> Unit = {},
+    val onOpenSettings: (SettingsSection) -> Unit = {}
+)
 @Composable
 fun ContentScreen(
     vm: BleViewModel,
+    nav: HomeNavigation = HomeNavigation(),
     onDismissSplashIfConnected: () -> Unit = {}
 ) {
     val status by vm.status.collectAsState()
@@ -86,7 +92,9 @@ fun ContentScreen(
             // Pills (TOP, fixed)
             PillRow(
                 status = status,
-                isConnected = isConnected
+                isConnected = isConnected,
+                vm = vm,
+                nav = nav
             )
 
             // Spool (MIDDLE, flexible – fills available space)
@@ -333,26 +341,38 @@ private fun InteractiveSpool(deviceState: DeviceState) {
     }
 }
 
+private data class PillContent(
+    val icon: ImageVector,
+    val tint: Color,
+    val title: String,
+    val subtitle: String,
+    val isTitleDimmed: Boolean = false
+)
+
+private class HomePill(
+    val content: PillContent,
+    val onClick: () -> Unit,
+    val menu: @Composable () -> Unit = {}
+)
+
 @Composable
 private fun PillRow(
     status: DeviceStatus,
-    isConnected: Boolean
+    isConnected: Boolean,
+    vm: BleViewModel,
+    nav: HomeNavigation
 ) {
+    val dimTint = MaterialTheme.colorScheme.onSurfaceVariant
     val isV3 = status.boardVersion?.contains("CtrBoard V3") == true
     val tempC = status.chipTemperature
-    val isFahrenheit = status.temperatureInFahrenheit
 
     val tempLabel = when {
         tempC == null -> stringResource(R.string.value_none)
-        isFahrenheit -> {
-            val f = (tempC * 9 / 5.0 + 32).roundToInt()
-            stringResource(R.string.pill_chip_temp_f, f)
-        }
+        status.temperatureInFahrenheit -> stringResource(R.string.pill_chip_temp_f, (tempC * 9 / 5.0 + 32).roundToInt())
         else -> stringResource(R.string.pill_chip_temp_c, tempC)
     }
-
-    val tempIconTint = when {
-        tempC == null -> MaterialTheme.colorScheme.onSurfaceVariant
+    val tempTint = when {
+        tempC == null -> dimTint
         tempC >= 65 -> StateCriticalRed
         else -> StateNormalGreen
     }
@@ -363,11 +383,85 @@ private fun PillRow(
         fanOn -> stringResource(R.string.pill_fan_on, status.fanSpeed)
         else -> stringResource(R.string.pill_fan_off)
     }
-    val fanIconTint = when {
-        isV3 -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+    val fanTint = when {
+        isV3 -> dimTint.copy(alpha = 0.5f)
         fanOn -> MaterialTheme.colorScheme.primary
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
+        else -> dimTint
     }
+
+    val hasFil = status.hasFilament && isConnected
+
+    // A dropdown rather than cycling on tap: stepping through a smaller amount mid-run could stop the job at once
+    var amountMenuOpen by remember { mutableStateOf(false) }
+
+    val pills = listOf(
+        HomePill(
+            PillContent(
+                icon = if (isConnected) Icons.Rounded.SettingsInputAntenna else Icons.Rounded.PortableWifiOff,
+                tint = if (isConnected) Color(0xFF00BCD4) else dimTint,
+                title = stringResource(R.string.pill_connection),
+                subtitle = stringResource(if (isConnected) R.string.common_connected else R.string.common_disconnected)
+            ),
+            onClick = nav.onOpenConnection
+        ),
+        HomePill(
+            PillContent(Icons.Rounded.DeviceThermostat, tempTint, stringResource(R.string.pill_temperature), tempLabel),
+            onClick = { nav.onOpenSettings(SettingsSection.FAN) }
+        ),
+        HomePill(
+            PillContent(
+                icon = if (hasFil) Icons.Rounded.CheckCircle else Icons.Rounded.Cancel,
+                tint = if (hasFil) StateNormalGreen else dimTint,
+                title = stringResource(R.string.pill_filament),
+                subtitle = stringResource(if (hasFil) R.string.filament_detected else R.string.filament_not_detected)
+            ),
+            onClick = { nav.onOpenSettings(SettingsSection.CONFIGURATION) }
+        ),
+        HomePill(
+            PillContent(
+                icon = if (isV3) Icons.Rounded.AirplanemodeInactive else Icons.Rounded.Air,
+                tint = fanTint,
+                title = stringResource(R.string.pill_fan),
+                subtitle = fanSubtitle,
+                isTitleDimmed = isV3
+            ),
+            onClick = { nav.onOpenSettings(SettingsSection.FAN) }
+        ),
+        HomePill(
+            PillContent(
+                icon = Icons.Rounded.Scale,
+                tint = if (status.targetWeight == 0) dimTint else MaterialTheme.colorScheme.primary,
+                title = stringResource(R.string.pill_amount),
+                subtitle = stringResource(respoolAmountLabelRes(status.targetWeight))
+            ),
+            onClick = { amountMenuOpen = true },
+            menu = {
+                DropdownMenu(expanded = amountMenuOpen, onDismissRequest = { amountMenuOpen = false }) {
+                    respoolAmountOptions.forEach { (weight, labelRes) ->
+                        DropdownMenuItem(
+                            text = { Text(stringResource(labelRes)) },
+                            onClick = {
+                                amountMenuOpen = false
+                                if (weight != status.targetWeight) vm.setTargetWeight(weight)
+                            },
+                            trailingIcon = if (weight == status.targetWeight) {
+                                { Icon(Icons.Rounded.Check, contentDescription = null) }
+                            } else null
+                        )
+                    }
+                }
+            }
+        ),
+        HomePill(
+            PillContent(
+                icon = Icons.Rounded.Speed,
+                tint = if (status.highSpeed) MaterialTheme.colorScheme.primary else dimTint,
+                title = stringResource(R.string.set_high_speed),
+                subtitle = stringResource(if (status.highSpeed) R.string.pill_on else R.string.pill_fan_off)
+            ),
+            onClick = { vm.setHighSpeed(!status.highSpeed) }
+        )
+    )
 
     Column(
         modifier = Modifier
@@ -376,107 +470,56 @@ private fun PillRow(
             .padding(top = 10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            // Connection
-            Pill(
-                leading = {
-                    Icon(
-                        imageVector = if (isConnected) Icons.Rounded.SettingsInputAntenna else Icons.Rounded.PortableWifiOff,
-                        contentDescription = null,
-                        tint = if (isConnected) Color(0xFF00BCD4) else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(24.dp)
-                    )
-                },
-                title = stringResource(R.string.pill_connection),
-                subtitle = if (isConnected) stringResource(R.string.common_connected) else stringResource(R.string.common_disconnected),
-                modifier = Modifier.weight(1f)
-            )
-
-            // Temperature
-            Pill(
-                leading = {
-                    Icon(
-                        imageVector = Icons.Rounded.DeviceThermostat,
-                        contentDescription = null,
-                        tint = tempIconTint,
-                        modifier = Modifier.size(24.dp)
-                    )
-                },
-                title = stringResource(R.string.pill_temperature),
-                subtitle = tempLabel,
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            // Filament
-            val hasFil = status.hasFilament && isConnected
-            Pill(
-                leading = {
-                    Icon(
-                        imageVector = if (hasFil) Icons.Rounded.CheckCircle else Icons.Rounded.Cancel,
-                        contentDescription = null,
-                        tint = if (hasFil) StateNormalGreen else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(24.dp)
-                    )
-                },
-                title = stringResource(R.string.pill_filament),
-                subtitle = if (hasFil) stringResource(R.string.filament_detected) else stringResource(R.string.filament_not_detected),
-                modifier = Modifier.weight(1f)
-            )
-
-            // Fan
-            Pill(
-                leading = {
-                    Icon(
-                        imageVector = if (isV3) Icons.Rounded.AirplanemodeInactive else Icons.Rounded.Air,
-                        contentDescription = null,
-                        tint = fanIconTint,
-                        modifier = Modifier.size(24.dp)
-                    )
-                },
-                title = stringResource(R.string.pill_fan),
-                subtitle = fanSubtitle,
-                isTitleDimmed = isV3,
-                modifier = Modifier.weight(1f)
-            )
+        pills.chunked(2).forEach { row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                row.forEach { pill ->
+                    Pill(pill.content, pill.onClick, Modifier.weight(1f), pill.menu)
+                }
+            }
         }
     }
 }
 
 @Composable
 private fun Pill(
-    leading: @Composable () -> Unit,
-    title: String,
-    subtitle: String,
-    isTitleDimmed: Boolean = false,
-    modifier: Modifier = Modifier
+    content: PillContent,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    menu: @Composable () -> Unit = {}
 ) {
-    Row(
-        modifier
-            .height(50.dp)
-            .clip(RoundedCornerShape(50))
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(start = 12.dp, end = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(Modifier.size(28.dp), contentAlignment = Alignment.Center) { leading() }
-        Spacer(Modifier.width(6.dp))
-        Column(Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                color = if (isTitleDimmed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+    // Box so a dropdown menu anchors to the pill
+    Box(modifier) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+                .clip(RoundedCornerShape(50))
+                .background(MaterialTheme.colorScheme.surface)
+                .clickable(onClick = onClick)
+                .padding(start = 12.dp, end = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(Modifier.size(28.dp), contentAlignment = Alignment.Center) {
+                Icon(content.icon, contentDescription = null, tint = content.tint, modifier = Modifier.size(24.dp))
+            }
+            Spacer(Modifier.width(6.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = content.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (content.isTitleDimmed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = content.subtitle,
+                    style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
+        menu()
     }
 }
 

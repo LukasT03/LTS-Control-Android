@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Wifi
@@ -15,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -42,6 +42,22 @@ object Routes {
     const val UPGRADE_CODE = "upgrade_code"
 }
 
+private val topLevelTabs = listOf(
+    Triple(Routes.HOME, Icons.Rounded.Home, R.string.nav_control),
+    Triple(Routes.SETTINGS, Icons.Filled.Settings, R.string.nav_settings),
+    Triple(Routes.CONNECTION, Icons.Filled.Wifi, R.string.nav_connection),
+    Triple(Routes.MORE, Icons.Filled.MoreHoriz, R.string.nav_more)
+)
+
+/** Switches bottom-nav tabs, keeping each tab's back stack and state. */
+private fun NavHostController.navigateTopLevel(route: String) = navigate(route) {
+    popUpTo(graph.findStartDestination().id) {
+        saveState = true
+    }
+    launchSingleTop = true
+    restoreState = true
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LtsControlApp(vm: BleViewModel) {
@@ -56,6 +72,7 @@ fun LtsControlApp(vm: BleViewModel) {
     val lastDeviceAddress by vm.lastDeviceAddress.collectAsState()
 
     var showSplash by remember { mutableStateOf(false) }
+    val settingsFocus = remember { mutableStateOf<SettingsSection?>(null) }
 
     LaunchedEffect(hasCompletedSetup, lastDeviceAddress) {
         if (!hasCompletedSetup && lastDeviceAddress.isNullOrEmpty()) {
@@ -69,8 +86,7 @@ fun LtsControlApp(vm: BleViewModel) {
         }
     }
 
-    val topLevelRoutes = listOf(Routes.HOME, Routes.SETTINGS, Routes.CONNECTION, Routes.MORE)
-    val isTopLevel = currentRoute in topLevelRoutes
+    val isTopLevel = topLevelTabs.any { it.first == currentRoute }
 
     // Forced Board Variant Modal condition (§5.2)
     val isVariantUnknown by remember {
@@ -90,37 +106,25 @@ fun LtsControlApp(vm: BleViewModel) {
             OnboardingScreen(
                 onConnectClicked = {
                     showSplash = false
-                    navController.navigate(Routes.CONNECTION) {
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
+                    navController.navigateTopLevel(Routes.CONNECTION)
                 }
             )
         } else {
             Scaffold(
                 topBar = {
                     // Only show host TopAppBar on Home & Settings; sub-screens and connection/more have their own
-                    when (currentRoute) {
-                        Routes.HOME -> {
-                            CenterAlignedTopAppBar(
-                                title = { Text(stringResource(R.string.title_home)) },
-                                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                                    containerColor = MaterialTheme.colorScheme.background
-                                )
+                    val titleRes = when (currentRoute) {
+                        Routes.HOME -> R.string.title_home
+                        Routes.SETTINGS -> R.string.title_settings
+                        else -> null
+                    }
+                    if (titleRes != null) {
+                        CenterAlignedTopAppBar(
+                            title = { Text(stringResource(titleRes)) },
+                            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                                containerColor = MaterialTheme.colorScheme.background
                             )
-                        }
-                        Routes.SETTINGS -> {
-                            CenterAlignedTopAppBar(
-                                title = { Text(stringResource(R.string.title_settings)) },
-                                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                                    containerColor = MaterialTheme.colorScheme.background
-                                )
-                            )
-                        }
-                        else -> {}
+                        )
                     }
                 },
                 bottomBar = {
@@ -136,69 +140,15 @@ fun LtsControlApp(vm: BleViewModel) {
                                 unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                             )
 
-                            NavigationBarItem(
-                                selected = currentRoute == Routes.HOME,
-                                onClick = {
-                                    navController.navigate(Routes.HOME) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
-                                        }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                },
-                                icon = { Icon(Icons.Rounded.Home, contentDescription = null) },
-                                label = { Text(stringResource(R.string.nav_control)) },
-                                colors = navItemColors
-                            )
-
-                            NavigationBarItem(
-                                selected = currentRoute == Routes.SETTINGS,
-                                onClick = {
-                                    navController.navigate(Routes.SETTINGS) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
-                                        }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                },
-                                icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
-                                label = { Text(stringResource(R.string.nav_settings)) },
-                                colors = navItemColors
-                            )
-
-                            NavigationBarItem(
-                                selected = currentRoute == Routes.CONNECTION,
-                                onClick = {
-                                    navController.navigate(Routes.CONNECTION) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
-                                        }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                },
-                                icon = { Icon(Icons.Filled.Wifi, contentDescription = null) },
-                                label = { Text(stringResource(R.string.nav_connection)) },
-                                colors = navItemColors
-                            )
-
-                            NavigationBarItem(
-                                selected = currentRoute == Routes.MORE,
-                                onClick = {
-                                    navController.navigate(Routes.MORE) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
-                                        }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                },
-                                icon = { Icon(Icons.Filled.MoreHoriz, contentDescription = null) },
-                                label = { Text(stringResource(R.string.nav_more)) },
-                                colors = navItemColors
-                            )
+                            topLevelTabs.forEach { (route, icon, labelRes) ->
+                                NavigationBarItem(
+                                    selected = currentRoute == route,
+                                    onClick = { navController.navigateTopLevel(route) },
+                                    icon = { Icon(icon, contentDescription = null) },
+                                    label = { Text(stringResource(labelRes)) },
+                                    colors = navItemColors
+                                )
+                            }
                         }
                     }
                 }
@@ -216,6 +166,13 @@ fun LtsControlApp(vm: BleViewModel) {
                         composable(Routes.HOME) {
                             ContentScreen(
                                 vm = vm,
+                                nav = HomeNavigation(
+                                    onOpenConnection = { navController.navigateTopLevel(Routes.CONNECTION) },
+                                    onOpenSettings = { section ->
+                                        settingsFocus.value = section
+                                        navController.navigateTopLevel(Routes.SETTINGS)
+                                    }
+                                ),
                                 onDismissSplashIfConnected = { showSplash = false }
                             )
                         }
@@ -223,9 +180,12 @@ fun LtsControlApp(vm: BleViewModel) {
                         composable(Routes.SETTINGS) {
                             SettingsScreen(
                                 vm = vm,
-                                onOpenRespoolAmount = { navController.navigate(Routes.RESPOOL_AMOUNT) },
-                                onOpenBoardVariant = { navController.navigate(Routes.BOARD_VARIANT_SETTINGS) },
-                                onOpenServoCalibration = { navController.navigate(Routes.SERVO_CALIBRATION) }
+                                nav = SettingsNavigation(
+                                    onOpenRespoolAmount = { navController.navigate(Routes.RESPOOL_AMOUNT) },
+                                    onOpenBoardVariant = { navController.navigate(Routes.BOARD_VARIANT_SETTINGS) },
+                                    onOpenServoCalibration = { navController.navigate(Routes.SERVO_CALIBRATION) }
+                                ),
+                                focusRequest = settingsFocus
                             )
                         }
 
@@ -272,15 +232,7 @@ fun LtsControlApp(vm: BleViewModel) {
                         composable(Routes.INSTRUCTIONS) {
                             InstructionsScreen(
                                 onNavigateBack = { navController.popBackStack() },
-                                onRestartConnection = {
-                                    navController.navigate(Routes.CONNECTION) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
-                                        }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                }
+                                onRestartConnection = { navController.navigateTopLevel(Routes.CONNECTION) }
                             )
                         }
 
