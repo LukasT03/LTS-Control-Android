@@ -3,6 +3,7 @@
 .idea/
 local.properties
 **/build/
+**/build.nosync/
 captures/
 .externalNativeBuild/
 .cxx/

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.LTSControl" parent="Theme.LTSControl.Base">
+        <!-- Launch screen like on iOS: the logo without background on the page color. The image is the
+             288 dp splash canvas with the logo at 100 dp in the middle. -->
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_logo</item>
+        <item name="android:windowSplashScreenBackground">@android:color/system_neutral1_50</item>
+    </style>
+</resources>

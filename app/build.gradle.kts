@@ -13,7 +13,7 @@ android {
         minSdk = 26
         targetSdk = 37
         versionCode = 1
-        versionName = "1.0.0"
+        versionName = "1.7.2" // Same as the iOS app, so features can be named by one version.
     }
 
     buildFeatures {
@@ -46,7 +46,8 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended") {
         version { strictly("1.7.0") }
     }
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     testImplementation("junit:junit:4.13.2")
