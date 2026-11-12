@@ -39,6 +39,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
@@ -52,6 +53,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -314,8 +316,9 @@ fun BannerGrid(banners: List<Banner>, columns: Int, modifier: Modifier = Modifie
                             bottomStart = corner(bottom, start),
                             bottomEnd = corner(bottom, end),
                         ),
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        // The track color of the progress bar, so the cards match the control tab.
+                        color = ProgressIndicatorDefaults.linearTrackColor,
+                        contentColor = contentColorFor(ProgressIndicatorDefaults.linearTrackColor),
                         modifier = Modifier.weight(1f).fillMaxHeight(),
                     ) {
                         ItemRow(
@@ -323,7 +326,7 @@ fun BannerGrid(banners: List<Banner>, columns: Int, modifier: Modifier = Modifie
                             summary = banner.summary,
                             icon = banner.icon,
                             iconTint = banner.iconTint,
-                            summaryColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                            summaryColor = LocalContentColor.current.copy(alpha = 0.8f),
                             titleStyle = TitleStyle.copy(fontSize = 18.sp, lineHeight = 24.sp),
                         )
                     }
@@ -503,13 +506,17 @@ fun SwitchItem(
     }
 }
 
-/** Shows the chosen option as summary and opens a dialog with all options, like a ListPreference. */
+/**
+ * Shows the chosen option as summary and opens a dialog with all options, like a ListPreference.
+ * [description] explains the setting above the options in the dialog.
+ */
 @Composable
 fun <T> ChoiceItem(
     title: String,
     options: List<Pair<T, String>>,
     selected: T,
     enabled: Boolean = true,
+    description: String? = null,
     placeholder: String? = null,
     emptyText: String? = null,
     trailing: (@Composable RowScope.() -> Unit)? = null,
@@ -529,6 +536,13 @@ fun <T> ChoiceItem(
             title = { Text(title) },
             text = {
                 Column {
+                    if (description != null) {
+                        Text(
+                            description,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(bottom = 8.dp),
+                        )
+                    }
                     if (options.isEmpty() && emptyText != null) {
                         Text(emptyText, style = MaterialTheme.typography.bodyMedium)
                     }

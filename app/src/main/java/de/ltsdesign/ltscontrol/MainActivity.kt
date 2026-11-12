@@ -20,9 +20,19 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             LtsControlTheme {
-                LtsControlApp(app.bleManager, app.pairing, app.preferences, app.firmwareUpdates)
+                LtsControlApp(app.bleManager, app.pairing, app.preferences, app.notifications, app.firmwareUpdates)
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        app.notifications.isAppVisible = true
+    }
+
+    override fun onStop() {
+        super.onStop()
+        app.notifications.isAppVisible = false
     }
 
     override fun onNewIntent(intent: Intent) {

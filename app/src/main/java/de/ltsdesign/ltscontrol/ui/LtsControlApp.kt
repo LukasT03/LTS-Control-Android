@@ -32,6 +32,7 @@ import de.ltsdesign.ltscontrol.bluetooth.BleManager
 import de.ltsdesign.ltscontrol.bluetooth.DevicePairing
 import de.ltsdesign.ltscontrol.data.AppPreferences
 import de.ltsdesign.ltscontrol.data.FirmwareUpdateRepository
+import de.ltsdesign.ltscontrol.notifications.RespoolNotifications
 import de.ltsdesign.ltscontrol.ui.settings.SettingsBackground
 import de.ltsdesign.ltscontrol.ui.screens.ConnectionScreen
 import de.ltsdesign.ltscontrol.ui.screens.ControlScreen
@@ -50,6 +51,7 @@ fun LtsControlApp(
     bleManager: BleManager,
     pairing: DevicePairing,
     preferences: AppPreferences,
+    notifications: RespoolNotifications,
     firmwareUpdates: FirmwareUpdateRepository,
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(MainTab.Control) }
@@ -79,7 +81,7 @@ fun LtsControlApp(
             Box(Modifier.fillMaxSize().widthIn(max = 600.dp)) {
                 when (selectedTab) {
                     MainTab.Control -> ControlScreen(bleManager, preferences)
-                    MainTab.Settings -> SettingsScreen(bleManager, preferences)
+                    MainTab.Settings -> SettingsScreen(bleManager, preferences, notifications)
                     MainTab.Connection -> ConnectionScreen(bleManager, pairing)
                     MainTab.More -> MoreScreen(bleManager, pairing, firmwareUpdates)
                 }

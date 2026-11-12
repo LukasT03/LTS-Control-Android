@@ -1,5 +1,6 @@
 package de.ltsdesign.ltscontrol.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -40,6 +41,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
@@ -52,15 +55,23 @@ import de.ltsdesign.ltscontrol.R
 import de.ltsdesign.ltscontrol.bluetooth.BleManager
 import de.ltsdesign.ltscontrol.bluetooth.DeviceState
 import de.ltsdesign.ltscontrol.data.AppPreferences
-import de.ltsdesign.ltscontrol.ui.settings.SettingsItemColor
+import de.ltsdesign.ltscontrol.ui.settings.SettingsBackground
 import de.ltsdesign.ltscontrol.ui.settings.SettingsTitleStyle
 import de.ltsdesign.ltscontrol.ui.InteractiveSpool
 import de.ltsdesign.ltscontrol.ui.settings.Banner
 import de.ltsdesign.ltscontrol.ui.settings.BannerGrid
+import de.ltsdesign.ltscontrol.ui.theme.blueTonalButtonColors
+import de.ltsdesign.ltscontrol.ui.theme.redTonalButtonColors
 
 @Composable
 fun ControlScreen(bleManager: BleManager, preferences: AppPreferences) {
-    Column(Modifier.fillMaxSize()) {
+    // Fades toward the control card halfway to the lowest surface, lighter in light and darker in dark mode,
+    // so the card in the tab bar's color stands out.
+    val background = Brush.verticalGradient(
+        0.35f to SettingsBackground,
+        0.8f to lerp(SettingsBackground, MaterialTheme.colorScheme.surfaceContainerLowest, 0.5f),
+    )
+    Column(Modifier.fillMaxSize().background(background)) {
         // Same height and inset as the top bar of the other tabs, and the cards 8 dp below it like there.
         Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(Modifier.height(56.dp).padding(start = 8.dp), contentAlignment = Alignment.CenterStart) {
@@ -212,6 +223,9 @@ private fun Controls(bleManager: BleManager) {
     val status = bleManager.status
     val state = bleManager.deviceState
     val isConnected = bleManager.isConnected
+    val cardColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    val primaryColors = blueTonalButtonColors(cardColor)
+    val stopColors = redTonalButtonColors(cardColor)
 
     // Slider position; follows the board's speed unless the user is dragging.
     var localSpeed by remember { mutableFloatStateOf(status.speedPercent.toFloat()) }
@@ -220,11 +234,11 @@ private fun Controls(bleManager: BleManager) {
         if (!isEditingSpeed) localSpeed = status.speedPercent.toFloat()
     }
 
-    // Runs edge to edge down to the tab bar, only the top corners are rounded.
+    // Runs edge to edge down to the tab bar in its color, so both read as one surface; only the top corners are rounded.
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(topStart = 44.dp, topEnd = 44.dp),
-        color = SettingsItemColor,
+        color = cardColor,
     ) {
         Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -232,6 +246,7 @@ private fun Controls(bleManager: BleManager) {
                     Button(
                         onClick = bleManager::pauseMotor,
                         enabled = isConnected,
+                        colors = primaryColors,
                         shapes = ButtonDefaults.shapesFor(buttonHeight),
                         contentPadding = ButtonDefaults.contentPaddingFor(buttonHeight),
                         modifier = Modifier.weight(1f).heightIn(min = buttonHeight),
@@ -243,6 +258,7 @@ private fun Controls(bleManager: BleManager) {
                         onClick = bleManager::startMotor,
                         enabled = isConnected && state != DeviceState.Updating &&
                             (!status.useFilamentSensor || status.hasFilament),
+                        colors = primaryColors,
                         shapes = ButtonDefaults.shapesFor(buttonHeight),
                         contentPadding = ButtonDefaults.contentPaddingFor(buttonHeight),
                         modifier = Modifier.weight(1f).heightIn(min = buttonHeight),
@@ -253,13 +269,10 @@ private fun Controls(bleManager: BleManager) {
                 Button(
                     onClick = bleManager::stopMotor,
                     enabled = isConnected && state != DeviceState.Updating,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                    ),
+                    colors = stopColors,
                     shapes = ButtonDefaults.shapesFor(buttonHeight),
-                        contentPadding = ButtonDefaults.contentPaddingFor(buttonHeight),
-                        modifier = Modifier.weight(1f).heightIn(min = buttonHeight),
+                    contentPadding = ButtonDefaults.contentPaddingFor(buttonHeight),
+                    modifier = Modifier.weight(1f).heightIn(min = buttonHeight),
                 ) {
                     Text(stringResource(R.string.stop), style = ButtonDefaults.textStyleFor(buttonHeight))
                 }

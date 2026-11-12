@@ -6,6 +6,11 @@
     <!-- Scanning happens in the system's companion device dialog, so no scan or location permission. -->
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Keeps the connection while respooling in the background, see RespoolService. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <!-- With the companion device association, the service may also start when the board starts itself. -->
+    <uses-permission android:name="android.permission.REQUEST_COMPANION_START_FOREGROUND_SERVICES_FROM_BACKGROUND" />
     <uses-permission android:name="android.permission.INTERNET" />
 
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
@@ -27,6 +32,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".notifications.RespoolService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
+
+        <receiver
+            android:name=".notifications.StartActionReceiver"
+            android:exported="false" />
     </application>
 
 </manifest>

@@ -1,6 +1,7 @@
 package de.ltsdesign.ltscontrol.ui.screens
 
 import android.content.Intent
+import android.os.SystemClock
 import androidx.annotation.StringRes
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
@@ -70,8 +71,10 @@ import de.ltsdesign.ltscontrol.ui.settings.ActionCards
 import de.ltsdesign.ltscontrol.ui.settings.CardAction
 import de.ltsdesign.ltscontrol.ui.settings.SettingsCard
 import de.ltsdesign.ltscontrol.ui.settings.SettingsItem
+import de.ltsdesign.ltscontrol.ui.settings.SettingsItemColor
 import de.ltsdesign.ltscontrol.ui.settings.SettingsPage
 import de.ltsdesign.ltscontrol.ui.settings.settingsGroup
+import de.ltsdesign.ltscontrol.ui.theme.greenTonalButtonColors
 import kotlinx.coroutines.delay
 import kotlinx.serialization.Serializable
 
@@ -148,11 +151,15 @@ private fun AboutPage(
     LaunchedEffect(resumeCount) { if (resumeCount > 1) firmwareUpdates.refresh() }
 
     // Right after connecting the board hasn't reported Wi‑Fi and firmware yet, so the update button waits a moment.
-    var isSettlingAfterConnect by remember { mutableStateOf(false) }
+    // Counted from the connection, not from opening the tab, which recreates this page every time.
+    fun settleRemainingMs() =
+        if (isConnected) bleManager.connectedAt + 1_500 - SystemClock.elapsedRealtime() else 0L
+    var isSettlingAfterConnect by remember { mutableStateOf(settleRemainingMs() > 0) }
     LaunchedEffect(isConnected) {
-        isSettlingAfterConnect = isConnected
-        if (isConnected) {
-            delay(1_500)
+        val remaining = settleRemainingMs()
+        isSettlingAfterConnect = remaining > 0
+        if (remaining > 0) {
+            delay(remaining)
             isSettlingAfterConnect = false
         }
     }
@@ -238,6 +245,7 @@ private fun UpdateCard(
             Button(
                 onClick = { if (!isV3Blocked) bleManager.triggerOtaUpdate() },
                 enabled = !isV3Blocked && canUpdate && !isUpdating,
+                colors = greenTonalButtonColors(SettingsItemColor),
                 shapes = ButtonDefaults.shapesFor(buttonHeight),
                 contentPadding = ButtonDefaults.contentPaddingFor(buttonHeight),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).heightIn(min = buttonHeight),

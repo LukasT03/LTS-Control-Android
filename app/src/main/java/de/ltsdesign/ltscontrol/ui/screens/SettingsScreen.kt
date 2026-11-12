@@ -1,5 +1,12 @@
 package de.ltsdesign.ltscontrol.ui.screens
 
+import android.Manifest
+import android.content.Intent
+import android.os.Build
+import android.provider.Settings
+import androidx.activity.compose.LocalActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -28,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -40,6 +48,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -49,7 +58,7 @@ import de.ltsdesign.ltscontrol.bluetooth.BleManager
 import de.ltsdesign.ltscontrol.bluetooth.BoardVariant
 import de.ltsdesign.ltscontrol.bluetooth.DeviceState
 import de.ltsdesign.ltscontrol.data.AppPreferences
-
+import de.ltsdesign.ltscontrol.notifications.RespoolNotifications
 import de.ltsdesign.ltscontrol.ui.settings.Banner
 import de.ltsdesign.ltscontrol.ui.settings.ChoiceItem
 import de.ltsdesign.ltscontrol.ui.settings.RadioItem
@@ -82,7 +91,7 @@ private data object VariantSettings : SettingsDestination
 private data object CalibrationSettings : SettingsDestination
 
 @Composable
-fun SettingsScreen(bleManager: BleManager, preferences: AppPreferences) {
+fun SettingsScreen(bleManager: BleManager, preferences: AppPreferences, notifications: RespoolNotifications) {
     val backStack = rememberNavBackStack(SettingsHome)
     val back: () -> Unit = { backStack.removeLastOrNull() }
 
@@ -103,7 +112,7 @@ fun SettingsScreen(bleManager: BleManager, preferences: AppPreferences) {
                 slideOutHorizontally(targetOffsetX = { it })
         },
         entryProvider = entryProvider {
-            entry<SettingsHome> { SettingsMain(bleManager, preferences, onNavigate = { backStack.add(it) }) }
+            entry<SettingsHome> { SettingsMain(bleManager, preferences, notifications, onNavigate = { backStack.add(it) }) }
             entry<AmountSettings> { AmountPage(bleManager, back) }
             entry<VariantSettings> { VariantPage(bleManager, back) }
             entry<CalibrationSettings> { CalibrationPage(bleManager, back) }
@@ -139,6 +148,7 @@ private fun stateIcon(bleManager: BleManager): ImageVector {
 private fun SettingsMain(
     bleManager: BleManager,
     preferences: AppPreferences,
+    notifications: RespoolNotifications,
     onNavigate: (SettingsDestination) -> Unit,
 ) {
     val status = bleManager.status
@@ -207,6 +217,7 @@ private fun SettingsMain(
                     autoStopLevels,
                     status.torqueLimit,
                     enabled = !status.highSpeed,
+                    description = stringResource(R.string.auto_stop_note),
                 ) { bleManager.setTorqueLimit(it) }
             }
             item {
@@ -269,13 +280,17 @@ private fun SettingsMain(
                     onIncrease = { bleManager.setDurationAt85((status.durationAt85 + 5).coerceAtMost(2000)) },
                 )
             }
-            if (status.supportsFirmware133Settings) {
+        }
+
+        if (status.supportsFirmware133Settings) {
+            settingsGroup {
                 item {
                     ChoiceItem(
                         stringResource(R.string.sensor_sensitivity),
                         sensorLevels,
                         status.filamentLossMs,
                         enabled = status.useFilamentSensor,
+                        description = stringResource(R.string.sensor_sensitivity_note),
                     ) { bleManager.setFilamentLossMs(it) }
                 }
                 item {
@@ -295,6 +310,7 @@ private fun SettingsMain(
                     preferences.temperatureInFahrenheit = it
                 }
             }
+            item { NotificationsItem(preferences, notifications) }
             if (status.boardVariant != BoardVariant.Unknown) {
                 item { SettingsItem(stringResource(R.string.variant), summary = variant, onClick = { onNavigate(VariantSettings) }) }
             }
@@ -402,5 +418,49 @@ private fun CalibrationPage(bleManager: BleManager, onBack: () -> Unit) {
             }
         }
         settingsFooter(R.string.calibration_note)
+    }
+}
+
+/**
+ * On only while the system allows notifications too. The first time it asks for the permission,
+ * once Android stops showing that dialog it opens the app's notification settings instead.
+ */
+@Composable
+private fun NotificationsItem(preferences: AppPreferences, notifications: RespoolNotifications) {
+    val activity = LocalActivity.current
+    var isAllowed by remember { mutableStateOf(notifications.isAllowed()) }
+    LifecycleResumeEffect(Unit) {
+        isAllowed = notifications.isAllowed()
+        notifications.refresh()
+        onPauseOrDispose { }
+    }
+    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        isAllowed = granted
+        notifications.setEnabled(granted)
+    }
+
+    SwitchItem(
+        title = stringResource(R.string.notifications),
+        checked = preferences.notificationsEnabled && isAllowed,
+        summary = stringResource(R.string.notifications_note),
+    ) { on ->
+        val canAsk = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && activity != null &&
+            (!preferences.askedForNotificationPermission ||
+                activity.shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS))
+        when {
+            !on || isAllowed -> notifications.setEnabled(on)
+            canAsk -> {
+                preferences.askedForNotificationPermission = true
+                permission.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+            else -> {
+                // Turns on by itself once notifications are allowed there.
+                notifications.setEnabled(true)
+                activity?.startActivity(
+                    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                        .putExtra(Settings.EXTRA_APP_PACKAGE, activity.packageName),
+                )
+            }
+        }
     }
 }

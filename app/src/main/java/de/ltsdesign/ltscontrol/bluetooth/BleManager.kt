@@ -27,6 +27,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import de.ltsdesign.ltscontrol.BuildConfig
 import de.ltsdesign.ltscontrol.data.FirmwareVersion
+import de.ltsdesign.ltscontrol.notifications.RespoolNotifications
 import java.util.UUID
 import kotlin.reflect.KMutableProperty0
 import kotlinx.serialization.json.Json
@@ -45,7 +46,7 @@ private const val TAG = "Bluetooth"
  * All state is changed on the main thread, GATT callbacks are posted there.
  */
 @SuppressLint("MissingPermission") // every GATT call is behind hasConnectPermission()
-class BleManager(context: Context) {
+class BleManager(context: Context, private val notifications: RespoolNotifications) {
     companion object {
         val serviceUuid: UUID = UUID.fromString("9E05D06D-68A7-4E1F-A503-AE26713AC101")
         private val characteristicUuid = UUID.fromString("7CB2F1B4-7E3F-43D2-8C92-DF58C9A7B1A8")
@@ -78,6 +79,10 @@ class BleManager(context: Context) {
     val needsBoardVariantSelection: Boolean
         get() = status.didReceiveBoardVariant && status.boardVariant == BoardVariant.Unknown
 
+    /** When the current connection was made, in [SystemClock.elapsedRealtime]. */
+    var connectedAt = 0L
+        private set
+
     /** The paired board, kept while it is out of range so the connection is restored. */
     var savedDeviceAddress by mutableStateOf(preferences.getString(LAST_DEVICE_KEY, null))
         private set
@@ -89,6 +94,10 @@ class BleManager(context: Context) {
     /** Android allows one GATT operation at a time, so writes wait for the previous one. */
     private val writeQueue = ArrayDeque<ByteArray>()
     private var isWriting = false
+
+    /** A command from a notification that waits for the connection, see [perform]. */
+    private var pendingCommand: Pair<String, () -> Unit>? = null
+    private val pendingCommandTimeout = Runnable { pendingCommand?.second?.invoke(); pendingCommand = null }
 
     private val temperatureHistory = ArrayDeque<Int>()
 
@@ -154,6 +163,7 @@ class BleManager(context: Context) {
         savedDeviceAddress = null
         preferences.edit { remove(LAST_DEVICE_KEY) }
         mainHandler.removeCallbacksAndMessages(null)
+        pendingCommandTimeout.run()
         closeGatt()
         resetLiveState()
         status.firmwareVersion = null
@@ -171,6 +181,12 @@ class BleManager(context: Context) {
         availableSsids = null
         isScanningForSsids = false
         showOtaAlert = status.otaSuccess != null
+        syncNotifications()
+    }
+
+    /** Keeps the app running in the background while respooling, so results can be notified. */
+    private fun syncNotifications() {
+        if (!isDemo) notifications.sync(isConnected, deviceState)
     }
 
     private fun closeGatt() {
@@ -211,6 +227,23 @@ class BleManager(context: Context) {
     fun triggerWifiScan() {
         isScanningForSsids = true
         sendPacket(cmd = "WIFI_SCAN")
+    }
+
+    /**
+     * Commands from a notification can arrive while the app is still connecting, e.g. after the
+     * system restarted it in the background, so they wait up to 10 s for the connection.
+     */
+    fun perform(cmd: String, onDone: () -> Unit = {}) {
+        if (characteristic != null) {
+            sendPacket(cmd = cmd)
+            onDone()
+            return
+        }
+        pendingCommand?.second?.invoke()
+        pendingCommand = cmd to onDone
+        mainHandler.removeCallbacks(pendingCommandTimeout)
+        mainHandler.postDelayed(pendingCommandTimeout, 10_000)
+        if (gatt == null) restoreConnection()
     }
 
     fun clearOtaStatus() {
@@ -337,7 +370,15 @@ class BleManager(context: Context) {
     private fun updateStatus(dict: JsonObject) {
         val newState = DeviceState.fromWireCode(dict["STAT"].string)
         if (newState != null && newState != deviceState) {
+            // The first status after connecting only reports the current state: a board that finished
+            // while out of range stays done until the next start and would notify again on every reconnect.
+            if (newState == DeviceState.Done && didInitialSync) {
+                notifications.notifyDone()
+            } else if (newState == DeviceState.AutoStop && deviceState == DeviceState.Running) {
+                notifications.notifyAutoStop()
+            }
             deviceState = newState
+            syncNotifications()
         }
         if (!isConnected) return
         didInitialSync = true
@@ -462,12 +503,14 @@ class BleManager(context: Context) {
         if (!gatt.requestMtu(REQUESTED_MTU)) gatt.discoverServices()
         device.name?.takeIf { it.isNotEmpty() }?.let { status.boardVersion = it }
         isConnected = true
+        connectedAt = SystemClock.elapsedRealtime()
         deviceState = DeviceState.Idle
         didInitialSync = false
         availableSsids = null
         clearVariantIfLegacyFirmware()
         status.save()
         holdWifiStatus()
+        syncNotifications()
     }
 
     private fun didDisconnect(gatt: BluetoothGatt, gattStatus: Int) {
@@ -530,6 +573,12 @@ class BleManager(context: Context) {
         override fun onDescriptorWrite(gatt: BluetoothGatt, descriptor: BluetoothGattDescriptor, status: Int) =
             onMain(gatt) {
                 characteristic = descriptor.characteristic
+                pendingCommand?.let { (cmd, onDone) ->
+                    pendingCommand = null
+                    mainHandler.removeCallbacks(pendingCommandTimeout)
+                    sendPacket(cmd = cmd)
+                    onDone()
+                }
                 writeNext()
             }
 

@@ -58,9 +58,11 @@ import de.ltsdesign.ltscontrol.ui.settings.Banner
 import de.ltsdesign.ltscontrol.ui.settings.ChoiceItem
 import de.ltsdesign.ltscontrol.ui.settings.SettingsCustomItem
 import de.ltsdesign.ltscontrol.ui.settings.SettingsItem
+import de.ltsdesign.ltscontrol.ui.settings.SettingsItemColor
 import de.ltsdesign.ltscontrol.ui.settings.SettingsPage
 import de.ltsdesign.ltscontrol.ui.settings.settingsBanner
 import de.ltsdesign.ltscontrol.ui.settings.settingsGroup
+import de.ltsdesign.ltscontrol.ui.theme.blueTonalButtonColors
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -193,6 +195,7 @@ fun ConnectionScreen(bleManager: BleManager, pairing: DevicePairing) {
                         Button(
                             onClick = sendCredentials,
                             enabled = canSend,
+                            colors = blueTonalButtonColors(SettingsItemColor),
                             shapes = ButtonDefaults.shapesFor(buttonHeight),
                             contentPadding = ButtonDefaults.contentPaddingFor(buttonHeight),
                             modifier = Modifier.fillMaxWidth().heightIn(min = buttonHeight),

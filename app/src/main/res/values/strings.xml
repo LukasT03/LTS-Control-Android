@@ -69,6 +69,13 @@
     <string name="app_section">App</string>
     <string name="notifications">Notifications</string>
     <string name="notifications_note">Receive push notifications when the Respooler stops or finishes.</string>
+    <string name="channel_alerts">Done and Auto-Stop</string>
+    <string name="channel_ongoing">Respooling in Progress</string>
+    <string name="notification_done_title">Respooler Done!</string>
+    <string name="notification_done_text">The spooling process was completed successfully.</string>
+    <string name="notification_auto_stop_title">Error: Auto-Stop!</string>
+    <string name="notification_auto_stop_text">The Respooler stopped automatically. Check if the motor is blocked.</string>
+    <string name="start_respooler">Start Respooler</string>
     <string name="variant">Variant</string>
     <string name="end_positions">Calibrate End Positions</string>
     <string name="bluetooth">Bluetooth</string>
@@ -128,6 +135,7 @@
     <string name="reference_time">Reference Time</string>
     <string name="minutes_seconds">%1$02dm %2$02ds</string>
     <string name="sensor_sensitivity">Sensor Sensitivity</string>
+    <string name="sensor_sensitivity_note">With a lower sensitivity, the Respooler only reacts to longer interruptions at the filament sensor.</string>
     <string name="power_loss_recovery">Power Loss Recovery</string>
     <string name="power_loss_note">If the power fails while respooling, the progress is kept.</string>
     <string name="power_loss_note_pro">If the power fails while respooling, the progress and servo position are kept.</string>
