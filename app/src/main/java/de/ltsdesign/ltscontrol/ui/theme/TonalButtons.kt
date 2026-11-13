@@ -8,16 +8,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 
-/** A clear red like the system red on iOS; the theme's error red is too dark for a label. */
-private val TonalRed = Color(0xFFE3261C)
-private val TonalRedDark = Color(0xFFFF453A)
-
 /** In dark mode a lighter LTS blue, so the label is as bright as the red one. */
 private val TonalBlueDark = Color(0xFF4A9EF0)
 
-/** Like the system green on iOS, a bit darker in light mode so the label stays readable. */
-private val TonalGreen = Color(0xFF2DB04F)
-private val TonalGreenDark = Color(0xFF30D158)
+/** Signal colors like the system colors on iOS, a bit darker in light mode so they stay readable as text. */
+object StatusColors {
+    val red: Color @Composable get() = if (isSystemInDarkTheme()) Color(0xFFFF453A) else Color(0xFFE3261C)
+    val green: Color @Composable get() = if (isSystemInDarkTheme()) Color(0xFF30D158) else Color(0xFF2DB04F)
+    val orange: Color @Composable get() = if (isSystemInDarkTheme()) Color(0xFFFF9F0A) else Color(0xFFFF9500)
+}
 
 /**
  * Blue button like the bordered buttons on iOS: the color in the label and, a bit transparent,
@@ -36,14 +35,14 @@ fun blueTonalButtonColors(background: Color): ButtonColors {
 /** Red counterpart of [blueTonalButtonColors], e.g. for stopping the motor. */
 @Composable
 fun redTonalButtonColors(background: Color): ButtonColors {
-    val red = if (isSystemInDarkTheme()) TonalRedDark else TonalRed
+    val red = StatusColors.red
     return tonalButtonColors(fill = red.copy(alpha = 0.2f), label = red, background = background)
 }
 
 /** Green counterpart of [blueTonalButtonColors], e.g. for firmware updates. */
 @Composable
 fun greenTonalButtonColors(background: Color): ButtonColors {
-    val green = if (isSystemInDarkTheme()) TonalGreenDark else TonalGreen
+    val green = StatusColors.green
     return tonalButtonColors(fill = green.copy(alpha = 0.2f), label = green, background = background)
 }
 

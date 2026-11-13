@@ -1,5 +1,6 @@
 package de.ltsdesign.ltscontrol.ui.screens
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,6 +30,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -43,6 +45,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
@@ -60,6 +64,7 @@ import de.ltsdesign.ltscontrol.ui.settings.SettingsTitleStyle
 import de.ltsdesign.ltscontrol.ui.InteractiveSpool
 import de.ltsdesign.ltscontrol.ui.settings.Banner
 import de.ltsdesign.ltscontrol.ui.settings.BannerGrid
+import de.ltsdesign.ltscontrol.ui.theme.StatusColors
 import de.ltsdesign.ltscontrol.ui.theme.blueTonalButtonColors
 import de.ltsdesign.ltscontrol.ui.theme.redTonalButtonColors
 
@@ -96,6 +101,7 @@ fun ControlScreen(bleManager: BleManager, preferences: AppPreferences) {
                     rotateCounterClockwiseLabel = stringResource(R.string.rotate_spool_counterclockwise),
                     modifier = Modifier.size(spoolSize),
                     alpha = 0.72f,
+                    isRunning = bleManager.isConnected && bleManager.deviceState == DeviceState.Running,
                 )
                 Spacer(Modifier.weight(1f))
             }
@@ -167,7 +173,7 @@ private fun StatusProgress(bleManager: BleManager, modifier: Modifier = Modifier
                     else -> ""
                 },
                 style = StatusTextStyle,
-                color = if (state == DeviceState.AutoStop) MaterialTheme.colorScheme.error else LocalContentColor.current,
+                color = if (state == DeviceState.AutoStop) StatusColors.red else LocalContentColor.current,
                 modifier = Modifier.width(72.dp),
             )
             Text(
@@ -190,13 +196,31 @@ private fun StatusProgress(bleManager: BleManager, modifier: Modifier = Modifier
             )
         }
         Spacer(Modifier.height(12.dp))
-        LinearProgressIndicator(
-            progress = { ((status.progress ?: 0.0) / 100).toFloat().coerceIn(0f, 1f) },
-            color = when (state) {
-                DeviceState.AutoStop -> MaterialTheme.colorScheme.error
-                DeviceState.Paused -> MaterialTheme.colorScheme.outline
+        // Colored like on iOS: red on an error once there is progress, green when done and orange
+        // while paused; on an error and while paused the track takes the color too.
+        val progress = ((status.progress ?: 0.0) / 100).toFloat().coerceIn(0f, 1f)
+        val isError = state == DeviceState.AutoStop && progress > 0f
+        val red = StatusColors.red
+        val orange = StatusColors.orange
+        val color by animateColorAsState(
+            when {
+                isError -> red
+                state == DeviceState.Done -> StatusColors.green
+                state == DeviceState.Paused -> orange
                 else -> MaterialTheme.colorScheme.primary
             },
+        )
+        val trackColor by animateColorAsState(
+            when {
+                isError -> red.copy(alpha = 0.2f)
+                state == DeviceState.Paused -> orange.copy(alpha = 0.2f)
+                else -> ProgressIndicatorDefaults.linearTrackColor
+            },
+        )
+        LinearProgressIndicator(
+            progress = { progress },
+            color = color,
+            trackColor = trackColor,
             modifier = Modifier.fillMaxWidth().height(12.dp),
         )
         Spacer(Modifier.height(4.dp))
@@ -227,6 +251,7 @@ private fun Controls(bleManager: BleManager) {
     val primaryColors = blueTonalButtonColors(cardColor)
     val stopColors = redTonalButtonColors(cardColor)
 
+    val haptics = LocalHapticFeedback.current
     // Slider position; follows the board's speed unless the user is dragging.
     var localSpeed by remember { mutableFloatStateOf(status.speedPercent.toFloat()) }
     var isEditingSpeed by remember { mutableStateOf(false) }
@@ -282,6 +307,8 @@ private fun Controls(bleManager: BleManager) {
                 Slider(
                     value = localSpeed,
                     onValueChange = {
+                        // A tick for every percent while dragging, like on iOS.
+                        if (it.toInt() != localSpeed.toInt()) haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
                         isEditingSpeed = true
                         localSpeed = it
                     },

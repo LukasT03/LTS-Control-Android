@@ -239,8 +239,9 @@ private fun SettingsHeader(text: String) {
     )
 }
 
+/** Note below a group, with the info icon of the system Settings. */
 @Composable
-private fun SettingsFooter(text: String) {
+fun SettingsFooter(text: String) {
     Column(
         modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -386,6 +387,7 @@ fun SettingsCard(modifier: Modifier = Modifier, content: @Composable () -> Unit)
 @Composable
 private fun ItemRow(
     title: String,
+    modifier: Modifier = Modifier,
     summary: String? = null,
     styledSummary: AnnotatedString? = null,
     icon: ImageVector? = null,
@@ -393,7 +395,6 @@ private fun ItemRow(
     enabled: Boolean = true,
     summaryColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     titleStyle: TextStyle = TitleStyle,
-    modifier: Modifier = Modifier,
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable RowScope.() -> Unit)? = null,
 ) {

@@ -10,13 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BluetoothDisabled
 import androidx.compose.material.icons.rounded.CheckCircle
@@ -30,7 +24,6 @@ import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -42,12 +35,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -72,7 +64,6 @@ import de.ltsdesign.ltscontrol.ui.settings.SwitchItem
 import de.ltsdesign.ltscontrol.ui.settings.settingsBanner
 import de.ltsdesign.ltscontrol.ui.settings.settingsFooter
 import de.ltsdesign.ltscontrol.ui.settings.settingsGroup
-import java.util.Locale
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -127,10 +118,6 @@ private fun amountLabel(weight: Int): String = when (weight) {
     3 -> stringResource(R.string.amount_250g)
     else -> stringResource(R.string.whole_spool)
 }
-
-@Composable
-private fun variantLabel(variant: BoardVariant): String =
-    stringResource(if (variant == BoardVariant.Pro) R.string.respooler_pro else R.string.respooler_v4)
 
 private fun stateIcon(bleManager: BleManager): ImageVector {
     if (!bleManager.isConnected) return Icons.Rounded.BluetoothDisabled
@@ -238,7 +225,8 @@ private fun SettingsMain(
                 item {
                     StepperItem(
                         title = stringResource(R.string.step_distance),
-                        valueText = String.format(Locale.getDefault(), "%.2f mm", status.servoStepMm),
+                        // In the app's language, e.g. "1,75 mm" in German.
+                        valueText = String.format(LocalConfiguration.current.locales[0], "%.2f mm", status.servoStepMm),
                         canDecrease = status.servoStepMm > 0.5,
                         canIncrease = status.servoStepMm < 4.0,
                         onDecrease = { bleManager.setServoStepMm(Math.round((status.servoStepMm - 0.01) * 100) / 100.0) },
@@ -246,9 +234,12 @@ private fun SettingsMain(
                     )
                 }
                 item {
-                    ChoiceItem(stringResource(R.string.start_side), sides, status.servoHome) {
-                        bleManager.setServoHome(it)
-                    }
+                    ChoiceItem(
+                        stringResource(R.string.start_side),
+                        sides,
+                        status.servoHome,
+                        description = stringResource(R.string.servo_note),
+                    ) { bleManager.setServoHome(it) }
                 }
             }
         }
@@ -311,7 +302,11 @@ private fun SettingsMain(
                 }
             }
             item { NotificationsItem(preferences, notifications) }
-            if (status.boardVariant != BoardVariant.Unknown) {
+        }
+
+        // A group of its own like on iOS, it concerns the board, not the app.
+        if (status.boardVariant != BoardVariant.Unknown) {
+            settingsGroup {
                 item { SettingsItem(stringResource(R.string.variant), summary = variant, onClick = { onNavigate(VariantSettings) }) }
             }
         }
@@ -337,36 +332,17 @@ private fun AmountPage(bleManager: BleManager, onBack: () -> Unit) {
 
 @Composable
 private fun VariantPage(bleManager: BleManager, onBack: () -> Unit) {
-    val selected = bleManager.status.boardVariant
     SettingsPage(title = stringResource(R.string.variant), onBack = onBack) {
         settingsGroup {
             item {
-                SettingsCustomItem {
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        for ((variant, image) in listOf(BoardVariant.Standard to R.drawable.respooler, BoardVariant.Pro to R.drawable.respooler_pro)) {
-                            VariantOption(image, variantLabel(variant), selected == variant, Modifier.weight(1f)) {
-                                bleManager.status.boardVariant = variant
-                                bleManager.setBoardVariant(variant)
-                            }
-                        }
-                    }
+                // In the settings a tap applies the variant right away.
+                VariantOptions(bleManager.status.boardVariant) { variant ->
+                    bleManager.status.boardVariant = variant
+                    bleManager.setBoardVariant(variant)
                 }
             }
         }
         settingsFooter(R.string.variant_note)
-    }
-}
-
-@Composable
-private fun VariantOption(image: Int, label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
-    Column(
-        modifier = modifier.selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Image(painterResource(image), label, Modifier.fillMaxWidth().height(120.dp), contentScale = ContentScale.Fit)
-        Text(label, style = MaterialTheme.typography.titleMedium)
-        RadioButton(selected = selected, onClick = null)
     }
 }
 
@@ -383,8 +359,12 @@ private fun CalibrationPage(bleManager: BleManager, onBack: () -> Unit) {
     }
     DisposableEffect(Unit) { onDispose { bleManager.servoGoto("HOME") } }
 
+    val haptics = LocalHapticFeedback.current
+
     // The servo angle grows to the left, so the left arrow increases it.
     fun adjust(delta: Int) {
+        // A light tap for every step, like on iOS.
+        haptics.performHapticFeedback(HapticFeedbackType.VirtualKey)
         val newAngle = (angle + delta).coerceIn(0, 180)
         if (side == "L") bleManager.setServoAngleL(newAngle) else bleManager.setServoAngleR(newAngle)
     }

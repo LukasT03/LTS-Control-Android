@@ -121,7 +121,7 @@ fun ConnectionScreen(bleManager: BleManager, pairing: DevicePairing) {
     val bluetoothSummary = stringResource(if (isConnected) R.string.connected else R.string.disconnected)
     val wifiSummary = when {
         showWifiError -> stringResource(R.string.error)
-        isWifiConnected -> status.wifiSsid ?: stringResource(R.string.connected)
+        isWifiConnected -> stringResource(R.string.connected)
         else -> stringResource(R.string.disconnected)
     }
     val networkPlaceholder = stringResource(R.string.select_network, ssids.size)

@@ -18,8 +18,10 @@ import androidx.compose.material3.ShortNavigationBar
 import androidx.compose.material3.ShortNavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -33,11 +35,13 @@ import de.ltsdesign.ltscontrol.bluetooth.DevicePairing
 import de.ltsdesign.ltscontrol.data.AppPreferences
 import de.ltsdesign.ltscontrol.data.FirmwareUpdateRepository
 import de.ltsdesign.ltscontrol.notifications.RespoolNotifications
+import de.ltsdesign.ltscontrol.ui.screens.WelcomeSheet
 import de.ltsdesign.ltscontrol.ui.settings.SettingsBackground
 import de.ltsdesign.ltscontrol.ui.screens.ConnectionScreen
 import de.ltsdesign.ltscontrol.ui.screens.ControlScreen
 import de.ltsdesign.ltscontrol.ui.screens.MoreScreen
 import de.ltsdesign.ltscontrol.ui.screens.SettingsScreen
+import de.ltsdesign.ltscontrol.ui.screens.VariantSheet
 
 private enum class MainTab(val label: Int, val icon: ImageVector) {
     Control(R.string.tab_control, Icons.Rounded.Home),
@@ -55,6 +59,26 @@ fun LtsControlApp(
     firmwareUpdates: FirmwareUpdateRepository,
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(MainTab.Control) }
+
+    // The welcome sheet opens on launch until a board was chosen once, and closes once one is connected.
+    var showWelcome by rememberSaveable {
+        mutableStateOf(!preferences.hasCompletedSetup && bleManager.savedDeviceAddress == null)
+    }
+    LaunchedEffect(bleManager.savedDeviceAddress) {
+        if (bleManager.savedDeviceAddress != null) preferences.hasCompletedSetup = true
+    }
+
+    // Asks for the variant once a connected board reports none, like on iOS, but not on top of the
+    // welcome sheet. Swiped away, it asks again after the next connection or when the board loses
+    // its variant again.
+    val needsVariant = bleManager.isConnected && bleManager.needsBoardVariantSelection && !showWelcome
+    var isVariantSheetDismissed by remember(needsVariant) { mutableStateOf(false) }
+    if (needsVariant && !isVariantSheetDismissed) {
+        VariantSheet(bleManager, onDismiss = { isVariantSheetDismissed = true })
+    }
+    if (showWelcome) {
+        WelcomeSheet(bleManager, pairing, onDismiss = { showWelcome = false })
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),

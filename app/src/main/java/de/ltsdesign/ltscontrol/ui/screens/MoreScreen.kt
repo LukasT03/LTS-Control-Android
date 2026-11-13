@@ -39,6 +39,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -143,7 +144,7 @@ private fun AboutPage(
 
     // Checks for new firmware on appear, on every (dis)connect and when the app returns to the foreground.
     LaunchedEffect(isConnected) { firmwareUpdates.refresh() }
-    var resumeCount by remember { mutableStateOf(0) }
+    var resumeCount by remember { mutableIntStateOf(0) }
     LifecycleResumeEffect(Unit) {
         resumeCount++
         onPauseOrDispose { }
@@ -291,6 +292,7 @@ private fun InfoPage(bleManager: BleManager, pairing: DevicePairing, onBack: () 
     val context = LocalContext.current
     val connect = rememberConnectAction(bleManager, pairing)
     val open: (String) -> Unit = { url -> context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) }
+    val feedbackMail = stringResource(R.string.feedback_mail)
 
     SettingsPage(title = stringResource(R.string.info), onBack = onBack) {
         settingsGroup {
@@ -338,7 +340,7 @@ private fun InfoPage(bleManager: BleManager, pairing: DevicePairing, onBack: () 
                     stringResource(R.string.feedback),
                     summary = withBold(R.string.instruction_feedback, R.string.feedback_mail),
                     icon = Icons.Rounded.Feedback,
-                    onClick = { open("mailto:${context.getString(R.string.feedback_mail)}") },
+                    onClick = { open("mailto:$feedbackMail") },
                 )
             }
             item {
