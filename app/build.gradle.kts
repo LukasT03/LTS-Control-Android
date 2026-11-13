@@ -35,19 +35,19 @@ dependencies {
     val composeBom = platform("androidx.compose:compose-bom-alpha:2026.06.00")
     implementation(composeBom)
 
-    implementation("androidx.core:core-ktx:1.19.0")
+    implementation("androidx.core:core-ktx:1.19.1")
     implementation("androidx.activity:activity-compose:1.13.0")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.foundation:foundation")
-    implementation("androidx.compose.material3:material3:1.5.0-alpha23")
-    implementation("androidx.navigation3:navigation3-runtime:1.0.1")
-    implementation("androidx.navigation3:navigation3-ui:1.0.1")
+    implementation("androidx.compose.material3:material3:1.5.0-rc01")
+    implementation("androidx.navigation3:navigation3-runtime:1.2.1")
+    implementation("androidx.navigation3:navigation3-ui:1.2.1")
     implementation("androidx.compose.material:material-icons-extended") {
         version { strictly("1.7.0") }
     }
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.13.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     testImplementation("junit:junit:4.13.2")
