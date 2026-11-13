@@ -85,6 +85,8 @@
     <string name="no_networks">No networks found yet. Tap Scan to search for networks.</string>
     <string name="connect">Connect Device</string>
     <string name="remove_saved_device">Remove Saved Device</string>
+    <string name="connected_successfully">Successfully connected!</string>
+    <string name="device_removed">The device was removed.</string>
     <string name="wifi_note">To establish a Wi-Fi connection, scan for available networks and enter the password. Only works with 2.4 GHz networks.</string>
     <string name="bluetooth_note">If you encounter connectivity issues, please remove the saved device and initialize a new connection.</string>
     <string name="control_board_pro" translatable="false">Control Board (Pro)</string>

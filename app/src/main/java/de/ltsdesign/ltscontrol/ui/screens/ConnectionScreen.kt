@@ -21,6 +21,7 @@ import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material.icons.rounded.WifiOff
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
@@ -29,9 +30,9 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -62,6 +63,7 @@ import de.ltsdesign.ltscontrol.ui.settings.SettingsItemColor
 import de.ltsdesign.ltscontrol.ui.settings.SettingsPage
 import de.ltsdesign.ltscontrol.ui.settings.settingsBanner
 import de.ltsdesign.ltscontrol.ui.settings.settingsGroup
+import de.ltsdesign.ltscontrol.ui.theme.StatusColors
 import de.ltsdesign.ltscontrol.ui.theme.blueTonalButtonColors
 import kotlinx.coroutines.delay
 
@@ -79,6 +81,7 @@ fun ConnectionScreen(bleManager: BleManager, pairing: DevicePairing) {
     var showPassword by rememberSaveable { mutableStateOf(false) }
     var isConnectingToWifi by remember { mutableStateOf(false) }
     var showWifiError by rememberSaveable { mutableStateOf(false) }
+    var showRemovedAlert by rememberSaveable { mutableStateOf(false) }
 
     val canScan = isConnected && bleManager.deviceState != DeviceState.Updating
     val canSend = canScan && !isConnectingToWifi && ssid.isNotEmpty() && password.isNotEmpty()
@@ -125,7 +128,13 @@ fun ConnectionScreen(bleManager: BleManager, pairing: DevicePairing) {
         else -> stringResource(R.string.disconnected)
     }
     val networkPlaceholder = stringResource(R.string.select_network, ssids.size)
-    val errorColor = MaterialTheme.colorScheme.error
+    // Colored like on iOS while connected, like on the control tab.
+    val bluetoothTint = if (isConnected) StatusColors.cyan else null
+    val wifiTint = when {
+        showWifiError -> StatusColors.red
+        isWifiConnected -> StatusColors.green
+        else -> null
+    }
 
     SettingsPage(title = stringResource(R.string.title_connection)) {
         settingsBanner(
@@ -133,12 +142,13 @@ fun ConnectionScreen(bleManager: BleManager, pairing: DevicePairing) {
                 R.string.bluetooth,
                 bluetoothSummary,
                 if (isConnected) Icons.Rounded.BluetoothConnected else Icons.Rounded.BluetoothDisabled,
+                iconTint = bluetoothTint,
             ),
             Banner(
                 R.string.wifi,
                 wifiSummary,
                 if (isWifiConnected) Icons.Rounded.Wifi else Icons.Rounded.WifiOff,
-                iconTint = if (showWifiError) errorColor else null,
+                iconTint = wifiTint,
             ),
         )
 
@@ -224,13 +234,20 @@ fun ConnectionScreen(bleManager: BleManager, pairing: DevicePairing) {
                 SettingsItem(
                     title = stringResource(R.string.remove_saved_device),
                     icon = Icons.Rounded.Delete,
+                    // Only while there is a board to remove, so the confirmation is always true.
+                    enabled = bleManager.savedDeviceAddress != null,
                     onClick = {
                         bleManager.savedDeviceAddress?.let(pairing::forget)
                         bleManager.forgetBoard()
+                        showRemovedAlert = true
                     },
                 )
             }
         }
+    }
+
+    if (showRemovedAlert) {
+        InfoAlert(stringResource(R.string.device_removed)) { showRemovedAlert = false }
     }
 }
 
@@ -242,7 +259,7 @@ fun ConnectionScreen(bleManager: BleManager, pairing: DevicePairing) {
 internal fun rememberConnectAction(bleManager: BleManager, pairing: DevicePairing): () -> Unit {
     val context = LocalContext.current
     val chooser = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
-        pairing.addressFromResult(result.data)?.let { bleManager.connectToDevice(it) }
+        pairing.addressFromResult(result.data)?.let { bleManager.connectToNewBoard(it) }
     }
     val findDevice = {
         pairing.findDevice(
@@ -260,4 +277,14 @@ internal fun rememberConnectAction(bleManager: BleManager, pairing: DevicePairin
             permission.launch(Manifest.permission.BLUETOOTH_CONNECT)
         }
     }
+}
+
+/** A short confirmation with only an OK button, like a plain alert on iOS. */
+@Composable
+internal fun InfoAlert(title: String, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.ok)) } },
+    )
 }

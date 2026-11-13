@@ -77,6 +77,11 @@ class BleManager(context: Context, private val notifications: RespoolNotificatio
     var showOtaAlert by mutableStateOf(false)
         private set
 
+    /** Set once a board chosen in the pairing dialog has connected, for the "Successfully connected!" alert. */
+    var showConnectedAlert by mutableStateOf(false)
+        private set
+    private var isPairingNewBoard = false
+
     val needsBoardVariantSelection: Boolean
         get() = status.didReceiveBoardVariant && status.boardVariant == BoardVariant.Unknown
 
@@ -163,6 +168,8 @@ class BleManager(context: Context, private val notifications: RespoolNotificatio
         Log.i(TAG, "Forget board")
         savedDeviceAddress = null
         preferences.edit { remove(LAST_DEVICE_KEY) }
+        isPairingNewBoard = false
+        showConnectedAlert = false
         mainHandler.removeCallbacksAndMessages(null)
         pendingCommandTimeout.run()
         closeGatt()
@@ -245,6 +252,21 @@ class BleManager(context: Context, private val notifications: RespoolNotificatio
         mainHandler.removeCallbacks(pendingCommandTimeout)
         mainHandler.postDelayed(pendingCommandTimeout, 10_000)
         if (gatt == null) restoreConnection()
+    }
+
+    /** Connects to the board just chosen in the system dialog and reports it once it's connected. */
+    fun connectToNewBoard(address: String) {
+        // Chosen again while already connected, connectToDevice has nothing to do.
+        if (isConnected && gatt?.device?.address == address) {
+            showConnectedAlert = true
+            return
+        }
+        isPairingNewBoard = true
+        connectToDevice(address)
+    }
+
+    fun clearConnectedAlert() {
+        showConnectedAlert = false
     }
 
     fun clearOtaStatus() {
@@ -505,6 +527,10 @@ class BleManager(context: Context, private val notifications: RespoolNotificatio
         device.name?.takeIf { it.isNotEmpty() }?.let { status.boardVersion = it }
         isConnected = true
         connectedAt = SystemClock.elapsedRealtime()
+        if (isPairingNewBoard) {
+            isPairingNewBoard = false
+            showConnectedAlert = true
+        }
         deviceState = DeviceState.Idle
         didInitialSync = false
         availableSsids = null

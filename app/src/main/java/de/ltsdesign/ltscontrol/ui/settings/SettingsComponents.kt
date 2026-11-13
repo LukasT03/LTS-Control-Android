@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -77,6 +78,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.ltsdesign.ltscontrol.R
+import de.ltsdesign.ltscontrol.ui.OnTabReselect
 
 // Measured from the Settings app on Android 17 (SettingsLib "expressive" style).
 private val GroupMargin = 16.dp
@@ -92,9 +94,16 @@ private val BannerInnerRadius = 8.dp
 private val DisabledAlpha = 0.38f
 
 // Text sizes of the system Settings: titles 16 sp, summaries and footers 14 sp, page title 22 sp.
-/** Item titles like "Completion Sound", also used for the status texts on the control tab. */
+/** Item titles like "Completion Sound". */
 val SettingsTitleStyle: TextStyle
     @Composable get() = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Normal)
+
+/**
+ * 18 sp, a step above the item titles: the status cards, the status texts on the control tab and
+ * the board update card.
+ */
+val SettingsLargeTitleStyle: TextStyle
+    @Composable get() = SettingsTitleStyle.copy(fontSize = 18.sp, lineHeight = 24.sp)
 private val TitleStyle: TextStyle
     @Composable get() = SettingsTitleStyle
 private val SummaryStyle: TextStyle
@@ -122,6 +131,9 @@ fun SettingsPage(
     content: LazyListScope.() -> Unit,
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    val listState = rememberLazyListState()
+    // A top-level page scrolls up when its tab is tapped again.
+    if (onBack == null) OnTabReselect { listState.animateScrollToItem(0) }
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         contentWindowInsets = WindowInsets(0),
@@ -161,6 +173,7 @@ fun SettingsPage(
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
+            state = listState,
             contentPadding = PaddingValues(
                 top = innerPadding.calculateTopPadding(),
                 bottom = innerPadding.calculateBottomPadding() + 24.dp,
@@ -328,7 +341,7 @@ fun BannerGrid(banners: List<Banner>, columns: Int, modifier: Modifier = Modifie
                             icon = banner.icon,
                             iconTint = banner.iconTint,
                             summaryColor = LocalContentColor.current.copy(alpha = 0.8f),
-                            titleStyle = TitleStyle.copy(fontSize = 18.sp, lineHeight = 24.sp),
+                            titleStyle = SettingsLargeTitleStyle,
                         )
                     }
                 }
@@ -343,16 +356,16 @@ class CardAction(
     val onClick: () -> Unit,
 )
 
-/** Tappable cards side by side, touching like the items of a group. */
+/** Tappable cards side by side, with the same gap and corners as the status cards. */
 @Composable
 fun ActionCards(actions: List<CardAction>, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier.fillMaxWidth().height(IntrinsicSize.Min),
-        horizontalArrangement = Arrangement.spacedBy(ItemGap),
+        horizontalArrangement = Arrangement.spacedBy(BannerGap),
     ) {
         actions.forEachIndexed { index, action ->
-            val start = if (index == 0) BannerRadius else InnerRadius
-            val end = if (index == actions.lastIndex) BannerRadius else InnerRadius
+            val start = if (index == 0) BannerRadius else BannerInnerRadius
+            val end = if (index == actions.lastIndex) BannerRadius else BannerInnerRadius
             Surface(
                 onClick = action.onClick,
                 shape = RoundedCornerShape(topStart = start, bottomStart = start, topEnd = end, bottomEnd = end),
@@ -363,6 +376,8 @@ fun ActionCards(actions: List<CardAction>, modifier: Modifier = Modifier) {
                     title = stringResource(action.title),
                     icon = action.icon,
                     iconTint = MaterialTheme.colorScheme.primary,
+                    // A bit closer than in a list, the cards are narrow.
+                    iconGap = 12.dp,
                 )
             }
         }
@@ -395,6 +410,8 @@ private fun ItemRow(
     enabled: Boolean = true,
     summaryColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     titleStyle: TextStyle = TitleStyle,
+    summaryStyle: TextStyle = SummaryStyle,
+    iconGap: Dp = ItemPadding,
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable RowScope.() -> Unit)? = null,
 ) {
@@ -413,7 +430,7 @@ private fun ItemRow(
                 tint = iconTint ?: LocalContentColor.current,
                 modifier = Modifier.size(24.dp).alpha(contentAlpha),
             )
-            Spacer(Modifier.width(ItemPadding))
+            Spacer(Modifier.width(iconGap))
         }
         if (leading != null) {
             // The radio buttons of the system Settings sit in a 40 dp column, the text starts 12 dp after it.
@@ -423,9 +440,9 @@ private fun ItemRow(
         Column(Modifier.weight(1f).alpha(contentAlpha)) {
             Text(title, style = titleStyle)
             if (styledSummary != null) {
-                Text(styledSummary, style = SummaryStyle, color = summaryColor)
+                Text(styledSummary, style = summaryStyle, color = summaryColor)
             } else if (summary != null) {
-                Text(summary, style = SummaryStyle, color = summaryColor)
+                Text(summary, style = summaryStyle, color = summaryColor)
             }
         }
         if (trailing != null) {
@@ -442,6 +459,8 @@ fun SettingsItem(
     summary: String? = null,
     icon: ImageVector? = null,
     enabled: Boolean = true,
+    titleStyle: TextStyle = TitleStyle,
+    summaryStyle: TextStyle = SummaryStyle,
     onClick: (() -> Unit)? = null,
     trailing: (@Composable RowScope.() -> Unit)? = null,
 ) {
@@ -450,6 +469,8 @@ fun SettingsItem(
         summary = summary,
         icon = icon,
         enabled = enabled,
+        titleStyle = titleStyle,
+        summaryStyle = summaryStyle,
         modifier = if (onClick != null) Modifier.clickable(enabled = enabled, onClick = onClick) else Modifier,
         trailing = trailing,
     )

@@ -30,6 +30,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -41,6 +43,9 @@ import de.ltsdesign.ltscontrol.R
 import de.ltsdesign.ltscontrol.bluetooth.BleManager
 import de.ltsdesign.ltscontrol.bluetooth.DevicePairing
 import de.ltsdesign.ltscontrol.ui.settings.SettingsBackground
+
+private val IconSize = 130.dp
+private val IconTop = 24.dp
 
 /**
  * Shown on launch until a board was chosen once, like the welcome sheet on iOS. It closes itself
@@ -62,15 +67,28 @@ fun WelcomeSheet(bleManager: BleManager, pairing: DevicePairing, onDismiss: () -
         sheetState = sheetState,
         containerColor = SettingsBackground,
     ) {
+        val scrollState = rememberScrollState()
+        val glow = iconGlowColor()
         // Almost full height like the large sheet on iOS, the app stays visible above it.
-        Column(Modifier.fillMaxHeight(0.92f).navigationBarsPadding()) {
+        Column(
+            Modifier
+                .fillMaxHeight(0.92f)
+                .navigationBarsPadding()
+                // The icon's glow like on the More tab, drawn here because the scrolling content
+                // below would cut it off at its top edge. It follows the icon when scrolled.
+                .drawBehind {
+                    val iconRadius = (IconSize / 2).toPx()
+                    val iconCenterY = (IconTop + IconSize / 2).toPx() - scrollState.value
+                    drawIconGlow(glow, Offset(size.width / 2, iconCenterY), iconRadius)
+                },
+        ) {
             // Content hangs from the top like Apple's welcome screens; it scrolls where the height runs short.
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState)
                     .padding(horizontal = 32.dp)
-                    .padding(top = 24.dp, bottom = 24.dp),
+                    .padding(top = IconTop, bottom = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Image(
@@ -78,7 +96,7 @@ fun WelcomeSheet(bleManager: BleManager, pairing: DevicePairing, onDismiss: () -
                     painter = painterResource(R.drawable.app_icon),
                     contentDescription = null,
                     contentScale = ContentScale.Fit,
-                    modifier = Modifier.size(130.dp).clip(CircleShape),
+                    modifier = Modifier.size(IconSize).clip(CircleShape),
                 )
                 Text(
                     stringResource(R.string.welcome_title),

@@ -84,6 +84,8 @@
     <string name="no_networks">Ingen netværk fundet endnu. Tryk på Søg for at søge efter netværk.</string>
     <string name="connect">Etablering af forbindelse</string>
     <string name="remove_saved_device">Fjern gemt enhed</string>
+    <string name="connected_successfully">Forbindelsen lykkedes!</string>
+    <string name="device_removed">Enheden er blevet fjernet.</string>
     <string name="wifi_note">For at oprette en Wi-Fi-forbindelse skal du søge efter tilgængelige netværk og indtaste adgangskoden. Virker kun med 2,4 GHz-netværk.</string>
     <string name="bluetooth_note">Hvis der er problemer med forbindelsen, skal du fjerne den gemte enhed og genoprette forbindelsen.</string>
     <string name="app_version">App‑version: %1$s</string>

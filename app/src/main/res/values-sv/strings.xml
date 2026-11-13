@@ -84,6 +84,8 @@
     <string name="no_networks">Inga nätverk hittades ännu. Tryck på Sök för att söka efter nätverk.</string>
     <string name="connect">Etablera anslutning</string>
     <string name="remove_saved_device">Ta bort sparad enhet</string>
+    <string name="connected_successfully">Anslutningen lyckades!</string>
+    <string name="device_removed">Enheten har tagits bort.</string>
     <string name="wifi_note">För att upprätta en Wi-Fi-anslutning, sök efter tillgängliga nätverk och ange lösenordet. Fungerar endast med 2,4 GHz-nätverk.</string>
     <string name="bluetooth_note">Om det uppstår problem med anslutningen tar du bort den sparade enheten och upprättar anslutningen på nytt.</string>
     <string name="app_version">Appversion: %1$s</string>

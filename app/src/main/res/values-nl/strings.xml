@@ -84,6 +84,8 @@
     <string name="no_networks">Nog geen netwerken gevonden. Tik op Zoeken om naar netwerken te zoeken.</string>
     <string name="connect">Verbinding maken</string>
     <string name="remove_saved_device">Opgeslagen apparaat verwijderen</string>
+    <string name="connected_successfully">Succesvol verbonden!</string>
+    <string name="device_removed">Het apparaat is verwijderd.</string>
     <string name="wifi_note">Om een Wi-Fi-verbinding tot stand te brengen, zoek naar beschikbare netwerken en voer het wachtwoord in. Werkt alleen met 2,4 GHz-netwerken.</string>
     <string name="bluetooth_note">Als er verbindingsproblemen zijn, verwijder dan het opgeslagen apparaat en herstel de verbinding.</string>
     <string name="app_version">App‑versie: %1$s</string>

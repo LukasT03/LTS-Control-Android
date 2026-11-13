@@ -84,6 +84,8 @@
     <string name="no_networks">Aún no se han encontrado redes. Toca «Buscar» para buscar redes.</string>
     <string name="connect">Establecer conexión</string>
     <string name="remove_saved_device">Eliminar dispositivo guardado</string>
+    <string name="connected_successfully">¡Conectado correctamente!</string>
+    <string name="device_removed">Se ha eliminado el dispositivo.</string>
     <string name="wifi_note">Para establecer una conexión Wi-Fi, busca redes disponibles e introduce la contraseña. Solo funciona con redes de 2,4 GHz.</string>
     <string name="bluetooth_note">Si hay problemas de conexión, retire el dispositivo guardado y restablezca la conexión.</string>
     <string name="app_version">Versión de la app: %1$s</string>

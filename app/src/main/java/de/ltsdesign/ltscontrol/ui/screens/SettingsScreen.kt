@@ -34,6 +34,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalConfiguration
@@ -46,6 +47,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import de.ltsdesign.ltscontrol.R
+import de.ltsdesign.ltscontrol.ui.OnTabReselect
 import de.ltsdesign.ltscontrol.bluetooth.BleManager
 import de.ltsdesign.ltscontrol.bluetooth.BoardVariant
 import de.ltsdesign.ltscontrol.bluetooth.DeviceState
@@ -64,6 +66,7 @@ import de.ltsdesign.ltscontrol.ui.settings.SwitchItem
 import de.ltsdesign.ltscontrol.ui.settings.settingsBanner
 import de.ltsdesign.ltscontrol.ui.settings.settingsFooter
 import de.ltsdesign.ltscontrol.ui.settings.settingsGroup
+import de.ltsdesign.ltscontrol.ui.theme.StatusColors
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -85,6 +88,8 @@ private data object CalibrationSettings : SettingsDestination
 fun SettingsScreen(bleManager: BleManager, preferences: AppPreferences, notifications: RespoolNotifications) {
     val backStack = rememberNavBackStack(SettingsHome)
     val back: () -> Unit = { backStack.removeLastOrNull() }
+    // Tapping the tab again goes back to its main page.
+    OnTabReselect { while (backStack.size > 1) backStack.removeLastOrNull() }
 
     NavDisplay(
         backStack = backStack,
@@ -131,6 +136,19 @@ private fun stateIcon(bleManager: BleManager): ImageVector {
     }
 }
 
+/** Colored like on iOS; not connected it keeps the text color. */
+@Composable
+private fun stateIconTint(bleManager: BleManager): Color? {
+    if (!bleManager.isConnected) return null
+    return when (bleManager.deviceState) {
+        DeviceState.Running, DeviceState.Done -> StatusColors.green
+        DeviceState.Paused -> StatusColors.orange
+        DeviceState.Updating -> StatusColors.indigo
+        DeviceState.AutoStop -> StatusColors.red
+        DeviceState.Idle -> MaterialTheme.colorScheme.primary
+    }
+}
+
 @Composable
 private fun SettingsMain(
     bleManager: BleManager,
@@ -155,6 +173,7 @@ private fun SettingsMain(
     val sides = listOf("L" to stringResource(R.string.left), "R" to stringResource(R.string.right))
     val units = listOf(false to stringResource(R.string.celsius), true to stringResource(R.string.fahrenheit))
     val stateText = stringResource(stateLabel(bleManager))
+    val stateTint = stateIconTint(bleManager)
     val powerLossNote = stringResource(
         if (status.boardVariant == BoardVariant.Pro) R.string.power_loss_note_pro else R.string.power_loss_note,
     )
@@ -163,7 +182,7 @@ private fun SettingsMain(
     val referenceTime = stringResource(R.string.minutes_seconds, status.durationAt85 / 60, status.durationAt85 % 60)
 
     SettingsPage(title = stringResource(R.string.title_settings)) {
-        settingsBanner(Banner(R.string.status, stateText, stateIcon(bleManager)))
+        settingsBanner(Banner(R.string.status, stateText, stateIcon(bleManager), iconTint = stateTint))
 
         settingsGroup(header = R.string.general) {
             item { SettingsItem(stringResource(R.string.respool_amount), summary = amount, onClick = { onNavigate(AmountSettings) }) }

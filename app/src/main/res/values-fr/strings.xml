@@ -84,6 +84,8 @@
     <string name="no_networks">Aucun réseau trouvé pour l’instant. Touche « Rechercher » pour chercher des réseaux.</string>
     <string name="connect">Établir une connexion</string>
     <string name="remove_saved_device">Supprimer l\'appareil enregistré</string>
+    <string name="connected_successfully">Connexion réussie !</string>
+    <string name="device_removed">L’appareil a été supprimé.</string>
     <string name="wifi_note">Pour établir une connexion Wi-Fi, recherchez les réseaux disponibles et saisissez le mot de passe. Fonctionne uniquement avec les réseaux 2,4 GHz.</string>
     <string name="bluetooth_note">En cas de problèmes de connexion, retirer l\'appareil enregistré et établir à nouveau la connexion.</string>
     <string name="app_version">Version de l’app : %1$s</string>

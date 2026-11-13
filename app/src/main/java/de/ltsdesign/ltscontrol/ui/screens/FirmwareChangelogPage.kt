@@ -60,8 +60,8 @@ fun FirmwareChangelogPage(onBack: () -> Unit) {
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 entry.items.forEach { bullet ->
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        Text("•", style = MaterialTheme.typography.bodyLarge)
-                                        Text(bullet, style = MaterialTheme.typography.bodyLarge)
+                                        Text("•", style = MaterialTheme.typography.bodyMedium)
+                                        Text(bullet, style = MaterialTheme.typography.bodyMedium)
                                     }
                                 }
                             }

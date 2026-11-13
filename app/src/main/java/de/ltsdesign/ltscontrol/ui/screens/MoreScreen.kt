@@ -46,6 +46,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -63,6 +64,7 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import de.ltsdesign.ltscontrol.BuildConfig
 import de.ltsdesign.ltscontrol.R
+import de.ltsdesign.ltscontrol.ui.OnTabReselect
 import de.ltsdesign.ltscontrol.bluetooth.BleManager
 import de.ltsdesign.ltscontrol.bluetooth.BoardVariant
 import de.ltsdesign.ltscontrol.bluetooth.DevicePairing
@@ -72,8 +74,10 @@ import de.ltsdesign.ltscontrol.ui.settings.ActionCards
 import de.ltsdesign.ltscontrol.ui.settings.CardAction
 import de.ltsdesign.ltscontrol.ui.settings.SettingsCard
 import de.ltsdesign.ltscontrol.ui.settings.SettingsItem
+import de.ltsdesign.ltscontrol.ui.settings.SettingsLargeTitleStyle
 import de.ltsdesign.ltscontrol.ui.settings.SettingsItemColor
 import de.ltsdesign.ltscontrol.ui.settings.SettingsPage
+import de.ltsdesign.ltscontrol.ui.settings.SettingsTitleStyle
 import de.ltsdesign.ltscontrol.ui.settings.settingsGroup
 import de.ltsdesign.ltscontrol.ui.theme.greenTonalButtonColors
 import kotlinx.coroutines.delay
@@ -95,6 +99,8 @@ private data object ChangelogPage : MoreDestination
 fun MoreScreen(bleManager: BleManager, pairing: DevicePairing, firmwareUpdates: FirmwareUpdateRepository) {
     val backStack = rememberNavBackStack(MoreHome)
     val back: () -> Unit = { backStack.removeLastOrNull() }
+    // Tapping the tab again goes back to its main page.
+    OnTabReselect { while (backStack.size > 1) backStack.removeLastOrNull() }
 
     NavDisplay(
         backStack = backStack,
@@ -187,24 +193,29 @@ private fun AboutPage(
 
 @Composable
 private fun AboutHeader(boardType: String?, boardFirmware: String?) {
+    val glow = iconGlowColor()
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Image(
             // The app icon, cropped to a circle like on iOS; the night resource is the dark icon.
             painter = painterResource(R.drawable.app_icon),
             contentDescription = null,
             contentScale = ContentScale.Fit,
-            modifier = Modifier.size(180.dp).clip(CircleShape),
+            modifier = Modifier
+                .size(180.dp)
+                // Drawn before the clip, so it reaches well beyond the icon and fades out there.
+                .drawBehind { drawIconGlow(glow, center, size.minDimension / 2) }
+                .clip(CircleShape),
         )
         Spacer(Modifier.height(28.dp))
         Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Medium)
         val secondary = MaterialTheme.colorScheme.onSurfaceVariant
         if (boardType != null) {
-            Text(boardType, style = MaterialTheme.typography.bodyMedium, color = secondary)
+            Text(boardType, style = SettingsTitleStyle, color = secondary)
             Spacer(Modifier.height(4.dp))
         }
-        Text(stringResource(R.string.app_version, BuildConfig.VERSION_NAME), style = MaterialTheme.typography.bodyMedium, color = secondary)
+        Text(stringResource(R.string.app_version, BuildConfig.VERSION_NAME), style = SettingsTitleStyle, color = secondary)
         if (boardFirmware != null) {
-            Text(stringResource(R.string.board_version, boardFirmware), style = MaterialTheme.typography.bodyMedium, color = secondary)
+            Text(stringResource(R.string.board_version, boardFirmware), style = SettingsTitleStyle, color = secondary)
         }
     }
 }
@@ -240,7 +251,13 @@ private fun UpdateCard(
 
     SettingsCard {
         Column(Modifier.padding(bottom = 16.dp)) {
-            SettingsItem(stringResource(R.string.board_update), summary = statusText)
+            // Like a status card: the title a step larger, the state as large as item titles.
+            SettingsItem(
+                stringResource(R.string.board_update),
+                summary = statusText,
+                titleStyle = SettingsLargeTitleStyle,
+                summaryStyle = MaterialTheme.typography.bodyLarge,
+            )
             // Medium size like the full-width buttons of the system Settings.
             val buttonHeight = ButtonDefaults.MediumContainerHeight
             Button(

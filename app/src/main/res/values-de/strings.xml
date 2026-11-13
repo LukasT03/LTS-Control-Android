@@ -84,6 +84,8 @@
     <string name="no_networks">Noch keine Netzwerke gefunden. Tippe auf „Suchen“, um nach Netzwerken zu suchen.</string>
     <string name="connect">Verbindung herstellen</string>
     <string name="remove_saved_device">Gespeichertes Gerät entfernen</string>
+    <string name="connected_successfully">Erfolgreich verbunden!</string>
+    <string name="device_removed">Das Gerät wurde entfernt.</string>
     <string name="wifi_note">Für die WLAN-Verbindung hier nach verfügbaren Netzwerken suchen und das Passwort eingeben. Funktioniert nur mit 2,4 GHz Netzwerken.</string>
     <string name="bluetooth_note">Bei Verbindungsproblemen das gespeicherte Gerät entfernen und die Verbindung neu aufbauen.</string>
     <string name="app_version">App Version: %1$s</string>

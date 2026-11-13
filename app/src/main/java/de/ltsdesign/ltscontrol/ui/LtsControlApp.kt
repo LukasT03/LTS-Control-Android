@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.MoreHoriz
-import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -18,11 +18,13 @@ import androidx.compose.material3.ShortNavigationBar
 import androidx.compose.material3.ShortNavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +37,7 @@ import de.ltsdesign.ltscontrol.bluetooth.DevicePairing
 import de.ltsdesign.ltscontrol.data.AppPreferences
 import de.ltsdesign.ltscontrol.data.FirmwareUpdateRepository
 import de.ltsdesign.ltscontrol.notifications.RespoolNotifications
+import de.ltsdesign.ltscontrol.ui.screens.InfoAlert
 import de.ltsdesign.ltscontrol.ui.screens.WelcomeSheet
 import de.ltsdesign.ltscontrol.ui.settings.SettingsBackground
 import de.ltsdesign.ltscontrol.ui.screens.ConnectionScreen
@@ -42,10 +45,12 @@ import de.ltsdesign.ltscontrol.ui.screens.ControlScreen
 import de.ltsdesign.ltscontrol.ui.screens.MoreScreen
 import de.ltsdesign.ltscontrol.ui.screens.SettingsScreen
 import de.ltsdesign.ltscontrol.ui.screens.VariantSheet
+import kotlinx.coroutines.flow.MutableSharedFlow
 
 private enum class MainTab(val label: Int, val icon: ImageVector) {
     Control(R.string.tab_control, Icons.Rounded.Home),
-    Settings(R.string.tab_settings, Icons.Rounded.Settings),
+    // Sliders like the tab icon on iOS.
+    Settings(R.string.tab_settings, Icons.Rounded.Tune),
     Connection(R.string.tab_connection, Icons.Rounded.Wifi),
     More(R.string.tab_more, Icons.Rounded.MoreHoriz),
 }
@@ -59,6 +64,8 @@ fun LtsControlApp(
     firmwareUpdates: FirmwareUpdateRepository,
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(MainTab.Control) }
+    val tabStates = rememberSaveableStateHolder()
+    val tabReselects = remember { MutableSharedFlow<Unit>(extraBufferCapacity = 1) }
 
     // The welcome sheet opens on launch until a board was chosen once, and closes once one is connected.
     var showWelcome by rememberSaveable {
@@ -69,15 +76,20 @@ fun LtsControlApp(
     }
 
     // Asks for the variant once a connected board reports none, like on iOS, but not on top of the
-    // welcome sheet. Swiped away, it asks again after the next connection or when the board loses
-    // its variant again.
-    val needsVariant = bleManager.isConnected && bleManager.needsBoardVariantSelection && !showWelcome
+    // welcome sheet, and only after the "Successfully connected!" alert. Swiped away, it asks again
+    // after the next connection or when the board loses its variant again.
+    val needsVariant = bleManager.isConnected && bleManager.needsBoardVariantSelection && !showWelcome &&
+        !bleManager.showConnectedAlert
     var isVariantSheetDismissed by remember(needsVariant) { mutableStateOf(false) }
     if (needsVariant && !isVariantSheetDismissed) {
         VariantSheet(bleManager, onDismiss = { isVariantSheetDismissed = true })
     }
     if (showWelcome) {
         WelcomeSheet(bleManager, pairing, onDismiss = { showWelcome = false })
+    }
+    // Wherever the board was chosen: welcome sheet, Connection tab or Info page.
+    if (bleManager.showConnectedAlert) {
+        InfoAlert(stringResource(R.string.connected_successfully), onDismiss = bleManager::clearConnectedAlert)
     }
 
     Scaffold(
@@ -90,7 +102,9 @@ fun LtsControlApp(
                 MainTab.entries.forEach { tab ->
                     ShortNavigationBarItem(
                         selected = selectedTab == tab,
-                        onClick = { selectedTab = tab },
+                        onClick = {
+                            if (selectedTab == tab) tabReselects.tryEmit(Unit) else selectedTab = tab
+                        },
                         icon = { Icon(tab.icon, contentDescription = null) },
                         label = { Text(stringResource(tab.label)) },
                     )
@@ -103,11 +117,17 @@ fun LtsControlApp(
             contentAlignment = Alignment.TopCenter,
         ) {
             Box(Modifier.fillMaxSize().widthIn(max = 600.dp)) {
-                when (selectedTab) {
-                    MainTab.Control -> ControlScreen(bleManager, preferences)
-                    MainTab.Settings -> SettingsScreen(bleManager, preferences, notifications)
-                    MainTab.Connection -> ConnectionScreen(bleManager, pairing)
-                    MainTab.More -> MoreScreen(bleManager, pairing, firmwareUpdates)
+                // Each tab keeps its pages, scroll position and inputs while another one is shown,
+                // like the tab bar on iOS.
+                tabStates.SaveableStateProvider(selectedTab.name) {
+                    CompositionLocalProvider(LocalTabReselects provides tabReselects) {
+                        when (selectedTab) {
+                            MainTab.Control -> ControlScreen(bleManager, preferences)
+                            MainTab.Settings -> SettingsScreen(bleManager, preferences, notifications)
+                            MainTab.Connection -> ConnectionScreen(bleManager, pairing)
+                            MainTab.More -> MoreScreen(bleManager, pairing, firmwareUpdates)
+                        }
+                    }
                 }
             }
         }

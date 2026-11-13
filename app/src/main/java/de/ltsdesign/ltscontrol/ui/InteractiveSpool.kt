@@ -13,9 +13,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
@@ -57,14 +58,22 @@ private const val MotorDeceleration = 0.05f
 private const val MotorFriction = 0.98f
 
 @Stable
-private class SpoolRotationState {
-    var rotationDegrees by mutableFloatStateOf(0f)
+private class SpoolRotationState(rotationDegrees: Float = 0f, motorVelocity: Float = 0f) {
+    companion object {
+        /** Keeps angle and spin while another tab is shown, so a running spool doesn't start over. */
+        val Saver = listSaver<SpoolRotationState, Float>(
+            save = { listOf(it.rotationDegrees, it.motorVelocity) },
+            restore = { SpoolRotationState(it[0], it[1]) },
+        )
+    }
+
+    var rotationDegrees by mutableFloatStateOf(rotationDegrees)
         private set
 
     private var flingJob: Job? = null
 
     /** Spin from the motor, see [runMotor]. */
-    private var motorVelocity = 0f
+    private var motorVelocity = motorVelocity
     var isDragging = false
 
     val isMotorSpinning: Boolean get() = motorVelocity != 0f
@@ -143,7 +152,7 @@ fun InteractiveSpool(
     alpha: Float = 1f,
     isRunning: Boolean = false,
 ) {
-    val rotationState = remember { SpoolRotationState() }
+    val rotationState = rememberSaveable(saver = SpoolRotationState.Saver) { SpoolRotationState() }
     val coroutineScope = rememberCoroutineScope()
 
     // Only runs while the spool spins, at rest nothing is drawn per frame.
