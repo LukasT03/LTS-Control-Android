@@ -16,6 +16,15 @@ android {
         versionName = "1.7.2" // Same as the iOS app, so features can be named by one version.
     }
 
+    buildTypes {
+        release {
+            // R8 removes unused code (most of the icon set) and optimizes Compose, as Google recommends.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+        }
+    }
+
     buildFeatures {
         compose = true
         buildConfig = true

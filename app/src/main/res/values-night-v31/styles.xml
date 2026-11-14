@@ -3,5 +3,7 @@
     <style name="Theme.LTSControl" parent="Theme.LTSControl.Base">
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_logo</item>
         <item name="android:windowSplashScreenBackground">@android:color/system_neutral1_900</item>
+        <!-- The window behind the app in the page color, like the launch screen. -->
+        <item name="android:windowBackground">@android:color/system_neutral1_900</item>
     </style>
 </resources>

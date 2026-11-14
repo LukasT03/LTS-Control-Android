@@ -5,5 +5,7 @@
              288 dp splash canvas with the logo at 100 dp in the middle. -->
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_logo</item>
         <item name="android:windowSplashScreenBackground">@android:color/system_neutral1_50</item>
+        <!-- The window behind the app in the page color, like the launch screen. -->
+        <item name="android:windowBackground">@android:color/system_neutral1_50</item>
     </style>
 </resources>
