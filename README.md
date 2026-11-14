@@ -8,12 +8,7 @@ It’s still in early development but will be built primarily with Jetpack Compo
 
 ## 📸 Showcase
 
-<p>
-  <img src="Screenshots/Control.png" width="24%" />
-  <img src="Screenshots/Settings.png" width="24%" />
-  <img src="Screenshots/Connection.png" width="24%" />
-  <img src="Screenshots/More.png" width="24%" />
-</p>
+<img src="Screenshots/Showcase.png" alt="Control, Settings, Connection and More tab" width="100%" />
 
 ## 📋 License
 
