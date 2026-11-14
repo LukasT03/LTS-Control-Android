@@ -11,3 +11,9 @@ captures/
 *.aab
 .DS_Store
 .kotlin/
+
+# Signing: keys and their passwords never belong in the repo.
+*.jks
+*.keystore
+keystore.properties
+app/release/
