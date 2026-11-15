@@ -659,6 +659,14 @@ class BleManager(context: Context, private val notifications: RespoolNotificatio
         status.speedPercent = 85
         status.torqueLimit = 2
         status.targetWeight = 0
+        // The defaults like in the iOS simulator, not whatever the last real board had.
+        status.jingleStyle = 0
+        status.ledBrightness = 50
+        status.useFilamentSensor = true
+        status.directionReversed = false
+        status.motorStrength = 100
+        status.highSpeed = false
+        status.fanAlways = false
     }
 
     // endregion
