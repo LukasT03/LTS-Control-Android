@@ -28,11 +28,14 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.LTSControl">
         <!-- One instance only: opened from the notification first, the launcher icon would otherwise
-             start a fresh copy on top and lose the open tab. -->
+             start a fresh copy on top and lose the open tab. Portrait only, like on iOS: the control
+             and More tabs aren't laid out for landscape. Android 16+ ignores this on large screens. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:launchMode="singleTask">
+            android:launchMode="singleTask"
+            android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

@@ -12,7 +12,7 @@ android {
         applicationId = "de.ltsdesign.ltscontrol"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
+        versionCode = 2
         versionName = "1.7.2" // Same as the iOS app, so features can be named by one version.
     }
 
