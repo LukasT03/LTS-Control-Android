@@ -4,7 +4,7 @@ LTS Control for Android is the companion app for the [LTS Respooler](https://git
 
 It’s built with Jetpack Compose and Material 3 Expressive to be as platform-native as possible.
 
-➡️ Download link coming soon!
+➡️ Download [here](https://play.google.com/store/apps/details?id=de.ltsdesign.ltscontrol)!
 
 ## 📸 Showcase
 
